@@ -1,0 +1,8 @@
+==================================================
+            SlimProto Server (Go)
+==================================================
+  Name    : GoSlimServer
+  UUID    : goslimserver-uuid-1234
+  Version : 9.0
+--------------------------------------------------
+Listening for SlimProto TCP connections on :3483...

@@ -1,0 +1,50 @@
+[0;34m20260625 06:17:19.752 DEBUG  squeezebox.player - Player.lua:297 Player:__init(c4:ef:bb:c6:c4:a5)[0m
+[0;34m20260625 06:17:19.765 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:641 notify_playerCurrent(): false[0m
+[0;34m20260625 06:17:19.774 DEBUG  squeezebox.player - Player.lua:297 Player:__init(c4:ef:bb:c6:c4:a5)[0m
+[0;34m20260625 06:17:19.774 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:1999 false[0m
+[0;34m20260625 06:17:19.774 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:641 notify_playerCurrent(): LocalPlayer {SqueezePlay}[0m
+[0;33m20260625 06:17:19.774 INFO   applet.SlimMenus - SlimMenusApplet.lua:1106 SlimMenusApplet:notify_playerCurrent(LocalPlayer {SqueezePlay})[0m
+[0;33m20260625 06:17:19.774 INFO   applet.SlimMenus - SlimMenusApplet.lua:1138 player changed from:false to LocalPlayer {SqueezePlay} but server not yet present[0m
+[0;33m20260625 06:17:19.774 INFO   applet.SlimMenus - SlimMenusApplet.lua:1181 No server, Fetching initial server, nil[0m
+[0;34m20260625 06:17:19.824 DEBUG  net.comet - Comet.lua:126 Comet: __init(GoSlimServer)[0m
+[0;34m20260625 06:17:19.824 DEBUG  net.comet - Comet.lua:384 Comet {GoSlimServer}: subscribe(/slim/serverstatus function: 0x55cc6cac6ba0, reqid:1, nil, serverstatus,0,50,subscribe:60, priority:nil)[0m
+[0;34m20260625 06:17:19.825 DEBUG  net.comet - Comet.lua:175 Comet {GoSlimServer}: setEndpoint state=UNCONNECTED, 192.168.1.8, 9000, /cometd[0m
+[0;34m20260625 06:17:19.825 DEBUG  net.comet - Comet.lua:199 Comet {GoSlimServer}: connect state=UNCONNECTED[0m
+[0;34m20260625 06:17:19.825 DEBUG  net.comet - Comet.lua:585 Comet {GoSlimServer}: _handshake(), calling: http://192.168.1.8:9000/cometd[0m
+[0;34m20260625 06:17:19.825 DEBUG  net.comet - Comet.lua:597 Will re-subscribe to /slim/serverstatus id=1[0m
+[0;34m20260625 06:17:19.825 DEBUG  net.comet - Comet.lua:564 Comet {GoSlimServer}: state is CONNECTING[0m
+[0;34m20260625 06:17:19.825 DEBUG  net.comet - Comet.lua:663 Comet {GoSlimServer}: _handshake, advice updated from server[0m
+[0;34m20260625 06:17:19.825 DEBUG  net.comet - Comet.lua:670 Comet {GoSlimServer}: _handshake OK, clientId: go-cometd-client-id[0m
+[0;34m20260625 06:17:19.825 DEBUG  net.comet - Comet.lua:691 Comet {GoSlimServer}: _connect()[0m
+[0;33m20260625 06:17:24.302 INFO   applet.SlimMenus - SlimMenusApplet.lua:1106 SlimMenusApplet:notify_playerCurrent(LocalPlayer {SqueezePlay})[0m
+[0;33m20260625 06:17:24.302 INFO   applet.SlimMenus - SlimMenusApplet.lua:1138 player changed from:false to LocalPlayer {SqueezePlay} but server not yet present[0m
+[0;34m20260625 06:17:24.302 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1150 lastSC: nil[0m
+[0;34m20260625 06:17:24.302 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1151 _server: nil[0m
+[0;34m20260625 06:17:24.302 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1154 server: SlimServer {GoSlimServer}[0m
+[0;34m20260625 06:17:24.302 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:641 notify_playerCurrent(): LocalPlayer {SqueezePlay}[0m
+[0;34m20260625 06:17:24.302 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:147 Polled Servers:[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:150 	255.255.255.255[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:158 Discovered Servers:[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:160 	SlimServer {GoSlimServer}[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:223 	_addServerItem SlimServer {GoSlimServer} goslimserver-uuid-1234[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:268 	id for this server set to: 192.168.1.8[0m
+[0;33m20260625 06:17:24.303 INFO   applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:185 Only one server found, select it directly: SlimServer {GoSlimServer}[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:416 server:getVersion():9.0[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:417 server:isCompatible():true[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:427 currentPlayer:LocalPlayer {SqueezePlay}[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:435 currentPlayer:getSlimServer():false[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:436 currentPlayer:isConnected():false[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:437 self.ignoreServerConnected:nil[0m
+[0;33m20260625 06:17:24.303 INFO   applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:654 connectPlayerToServer() LocalPlayer {SqueezePlay} SlimServer {GoSlimServer}[0m
+[0;34m20260625 06:17:24.303 DEBUG  applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:658 server:isSqueezeNetwork():false[0m
+[0;33m20260625 06:17:24.303 INFO   applet.ChooseMusicSource - ChooseMusicSourceApplet.lua:683 _doConnectPlayer() LocalPlayer {SqueezePlay} SlimServer {GoSlimServer}[0m
+[0;33m20260625 06:17:24.303 INFO   squeezebox.player - LocalPlayer.lua:203 connectToServer(): connecting localPlayer to serverSlimServer {GoSlimServer} via internal call[0m
+[0;34m20260625 06:17:24.303 DEBUG  net.slimproto - SlimProto.lua:655 disconnect[0m
+[0;34m20260625 06:17:24.303 DEBUG  net.slimproto - SlimProto.lua:655 disconnect[0m
+[0;33m20260625 06:17:24.303 INFO   net.slimproto - SlimProto.lua:597 connect to 192.168.1.8 (192.168.1.8)[0m
+[0;34m20260625 06:17:24.303 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=HELO[0m
+[0;33m20260625 06:17:24.303 INFO   net.slimproto - SlimProto.lua:152 Send HELO: reconnect-bit=0 bytesReceived(H,L)=0,0[0m
+[0;34m20260625 06:17:24.303 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=vers #7[0m
+[0;34m20260625 06:17:24.303 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260625 06:17:24.303 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=setd #17[0m
+[0;34m20260625 06:17:24.303 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m

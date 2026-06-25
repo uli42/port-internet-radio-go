@@ -1,0 +1,116 @@
+20260625 06:55:48.862 DEBUG  squeezebox.player - Player.lua:297 Player:__init(c4:ef:bb:c6:c4:a5)
+20260625 06:55:48.863 DEBUG  net.comet - Comet.lua:126 Comet: __init(traube3)
+20260625 06:55:48.863 DEBUG  net.comet - Comet.lua:384 Comet {traube3}: subscribe(/slim/serverstatus function: 0x56302f1f6470, reqid:1, nil, serverstatus,0,50,subscribe:60, priority:nil)
+20260625 06:55:48.863 DEBUG  squeezebox.player - LocalPlayer.lua:72 lastSqueezeCenter set: SlimServer {traube3}
+20260625 06:55:48.863 DEBUG  squeezebox.player - Player.lua:354 LocalPlayer {SqueezePlay} new for SlimServer {traube3}
+20260625 06:55:48.863 INFO   squeezebox.player - LocalPlayer.lua:203 connectToServer(): connecting localPlayer to serverSlimServer {traube3} via internal call
+20260625 06:55:48.863 DEBUG  net.slimproto - SlimProto.lua:655 disconnect
+20260625 06:55:48.875 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:641 notify_playerCurrent(): false
+20260625 06:55:48.883 DEBUG  squeezebox.player - Player.lua:297 Player:__init(c4:ef:bb:c6:c4:a5)
+20260625 06:55:48.883 INFO   applet.SlimMenus - SlimMenusApplet.lua:1106 SlimMenusApplet:notify_playerCurrent(LocalPlayer {SqueezePlay})
+20260625 06:55:48.883 INFO   applet.SlimMenus - SlimMenusApplet.lua:1181 No server, Fetching initial server, SlimServer {traube3}
+20260625 06:55:48.883 INFO   applet.SlimMenus - SlimMenusApplet.lua:1190 player changed from:false to LocalPlayer {SqueezePlay} but server not yet connected
+20260625 06:55:48.884 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:1999 false
+20260625 06:55:48.884 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:641 notify_playerCurrent(): LocalPlayer {SqueezePlay}
+20260625 06:55:48.887 DEBUG  net.slimproto - SlimProto.lua:655 disconnect
+20260625 06:55:48.887 INFO   net.slimproto - SlimProto.lua:597 connect to 192.168.1.8 (192.168.1.8)
+20260625 06:55:48.887 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=HELO
+20260625 06:55:48.887 INFO   net.slimproto - SlimProto.lua:152 Send HELO: reconnect-bit=0 bytesReceived(H,L)=0,0
+20260625 06:55:48.888 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28
+20260625 06:55:48.888 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=setd #5
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=SETD
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=setd #5
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=aude #6
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=audg #26
+20260625 06:55:48.889 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:55:48.933 DEBUG  net.comet - Comet.lua:175 Comet {traube3}: setEndpoint state=UNCONNECTED, 192.168.1.8, 9000, /cometd
+20260625 06:55:48.934 DEBUG  net.comet - Comet.lua:199 Comet {traube3}: connect state=UNCONNECTED
+20260625 06:55:48.934 DEBUG  net.comet - Comet.lua:585 Comet {traube3}: _handshake(), calling: http://192.168.1.8:9000/cometd
+20260625 06:55:48.934 DEBUG  net.comet - Comet.lua:597 Will re-subscribe to /slim/serverstatus id=1
+20260625 06:55:48.934 DEBUG  net.comet - Comet.lua:564 Comet {traube3}: state is CONNECTING
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:663 Comet {traube3}: _handshake, advice updated from server
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:670 Comet {traube3}: _handshake OK, clientId: e318f3d0
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:691 Comet {traube3}: _connect()
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:878 Comet {traube3}: _response, advice updated from server
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:888 Comet {traube3}: _response, /meta/connect id= OK
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:361 Sending pending request(s):
+{ --[[table: 0x56302f2565d0]]
+  { --[[table: 0x56302ef69570]]
+    id = 1,
+    data = { --[[table: 0x56302f0c38a0]]
+      request = { --[[table: 0x56302f0aac50]]
+        "",
+        { --[[table: 0x56302f1915f0]]
+          "serverstatus",
+          0,
+          50,
+          "subscribe:60",
+        },
+      },
+      response = "/e318f3d0/slim/serverstatus",
+    },
+    channel = "/slim/subscribe",
+  },
+}
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:372 caching chttp ip address: 192.168.1.8 for: http://192.168.1.8:9000/cometd
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:564 Comet {traube3}: state is CONNECTED
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:469 Comet {traube3}: request(nil, reqid:2, nil, artworkspec,add,40x40_m,squeezeplayskin, priority:nil)
+20260625 06:55:48.935 DEBUG  net.comet - Comet.lua:361 Sending pending request(s):
+{ --[[table: 0x56302f1af1f0]]
+  { --[[table: 0x56302f250ff0]]
+    data = { --[[table: 0x56302f278c80]]
+      request = { --[[table: 0x56302f086780]]
+        "",
+        { --[[table: 0x56302f2017c0]]
+          "artworkspec",
+          "add",
+          "40x40_m",
+          "squeezeplayskin",
+        },
+      },
+      response = "/e318f3d0/slim/request",
+    },
+    channel = "/slim/request",
+  },
+}
+20260625 06:55:48.936 DEBUG  net.comet - Comet.lua:372 caching chttp ip address: 192.168.1.8 for: http://192.168.1.8:9000/cometd
+20260625 06:55:48.936 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:163 ***serverConnected      SlimServer {traube3}
+20260625 06:55:48.936 DEBUG  net.comet - Comet.lua:888 Comet {traube3}: _response, /meta/subscribe id= OK
+sh: 1: arp: not found
+20260625 06:55:48.939 DEBUG  net.comet - Comet.lua:888 Comet {traube3}: _response, /slim/subscribe id=1 OK
+20260625 06:55:48.976 DEBUG  net.comet - Comet.lua:888 Comet {traube3}: _response, /e318f3d0/slim/serverstatus id=1 OK
+20260625 06:55:48.976 DEBUG  net.comet - Comet.lua:951 Comet {traube3}: _response, notifiying callbacks for /slim/serverstatus
+20260625 06:55:48.976 DEBUG  net.comet - Comet.lua:954   callback to: function: 0x56302f1f6470
+20260625 06:55:48.976 DEBUG  squeezebox.player - Player.lua:385 LocalPlayer {SqueezePlay}@SlimServer {traube3}:updatePlayerInfo connected=1
+20260625 06:55:48.977 DEBUG  squeezebox.player - Player.lua:483 power value ignored(out of sync), revert to old: nil
+20260625 06:55:48.977 DEBUG  squeezebox.player - Player.lua:487 oldInfo.connected says: false self.info.connected says: true
+20260625 06:55:48.977 INFO   applet.SlimMenus - SlimMenusApplet.lua:1106 SlimMenusApplet:notify_playerCurrent(LocalPlayer {SqueezePlay})
+20260625 06:55:48.977 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1150 lastSC: SlimServer {traube3}
+20260625 06:55:48.977 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1151 _server: SlimServer {traube3}
+20260625 06:55:48.977 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1154 server: SlimServer {traube3}
+20260625 06:55:48.981 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:641 notify_playerCurrent(): LocalPlayer {SqueezePlay}
+20260625 06:55:52.001 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28
+20260625 06:55:52.001 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:55:56.003 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28
+20260625 06:55:56.003 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:56:01.002 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28
+20260625 06:56:01.002 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:56:06.002 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28
+20260625 06:56:06.002 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:56:11.001 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28
+20260625 06:56:11.001 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:56:15.000 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28
+20260625 06:56:15.000 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:56:19.000 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28
+20260625 06:56:19.000 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT
+20260625 06:56:19.558 DEBUG  net.comet - Comet.lua:220 Comet {traube3}: disconnect state=CONNECTED
+20260625 06:56:19.558 DEBUG  net.comet - Comet.lua:983 Comet {traube3}: disconnect()
+20260625 06:56:19.558 DEBUG  net.comet - Comet.lua:987 Will re-subscribe to /slim/serverstatus on next connect
+20260625 06:56:19.558 DEBUG  net.comet - Comet.lua:564 Comet {traube3}: state is UNCONNECTING
+20260625 06:56:19.558 DEBUG  net.slimproto - SlimProto.lua:655 disconnect
