@@ -33,6 +33,7 @@ type CometdRequest struct {
 	ClientId   string                 `json:"clientId,omitempty"`
 	Id         interface{}            `json:"id,omitempty"`
 	Successful bool                   `json:"successful"`
+	Advice     map[string]interface{} `json:"advice,omitempty"`
 	Data       map[string]interface{} `json:"data,omitempty"`
 }
 
@@ -404,11 +405,15 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 			Channel:    "/meta/handshake",
 			Successful: true,
 			Id:         reqs[0].Id,
+			ClientId:   "go-cometd-client-id",
+			Advice: map[string]interface{}{
+				"reconnect": "retry",
+				"interval":  0,
+			},
 			Data: map[string]interface{}{
 				"version":    "1.0",
 				"minimumVersion": "1.0",
 				"supportedConnectionTypes": []string{"streaming"},
-				"clientId":   "go-cometd-client-id",
 			},
 		}
 		json.NewEncoder(w).Encode([]CometdRequest{response})
