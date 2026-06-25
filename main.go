@@ -383,16 +383,6 @@ func startHTTPServer(m *ServerMetadata) {
 	}
 }
 
-// hasMetaConnect checks if the batch contains a /meta/connect request
-func hasMetaConnect(reqs []CometdRequest) bool {
-	for _, req := range reqs {
-		if req.Channel == "/meta/connect" {
-			return true
-		}
-	}
-	return false
-}
-
 // handleCometd handles CometD protocol requests
 func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 	if r.Method != http.MethodPost {
@@ -410,12 +400,6 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 		fmt.Printf("[CometD] <- req[%d] channel=%q clientId=%q\n", i, req.Channel, req.ClientId)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Transfer-Encoding", "chunked")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.WriteHeader(http.StatusOK)
-
 	resps := make([]CometdRequest, 0, len(reqs))
 	for _, req := range reqs {
 		resp := cometdResponse(req, m)
@@ -424,22 +408,18 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 	for i, resp := range resps {
 		fmt.Printf("[CometD] -> resp[%d] channel=%q clientId=%q\n", i, resp.Channel, resp.ClientId)
 	}
-	if err := json.NewEncoder(w).Encode(resps); err != nil {
-		fmt.Printf("[CometD] encode error: %v\n", err)
+
+	body, err := json.Marshal(resps)
+	if err != nil {
+		fmt.Printf("[CometD] marshal error: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	// If this is a streaming connect, keep the connection open.
-	// The client's SocketHttp (chttp) expects the TCP connection to
-	// stay alive after the initial response so it can stream events.
-	if flusher, ok := w.(http.Flusher); ok && hasMetaConnect(reqs) {
-		flusher.Flush()
-		fmt.Printf("[CometD] entering streaming mode\n")
-		// Block until the client disconnects.  In a full implementation
-		// this would push CometD events as they become available.
-		<-r.Context().Done()
-		fmt.Printf("[CometD] streaming connection closed: %v\n", r.Context().Err())
-	}
+	fmt.Printf("[CometD] response body: %s\n", string(body))
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
 }
 
 func cometdResponse(req CometdRequest, m *ServerMetadata) CometdRequest {
