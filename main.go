@@ -400,11 +400,21 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusOK)
 
-	if len(reqs) > 0 && reqs[0].Channel == "/meta/handshake" {
-		response := CometdRequest{
+	resps := make([]CometdRequest, 0, len(reqs))
+	for _, req := range reqs {
+		resp := cometdResponse(req, m)
+		resps = append(resps, resp)
+	}
+	json.NewEncoder(w).Encode(resps)
+}
+
+func cometdResponse(req CometdRequest, m *ServerMetadata) CometdRequest {
+	switch req.Channel {
+	case "/meta/handshake":
+		return CometdRequest{
 			Channel:    "/meta/handshake",
 			Successful: true,
-			Id:         reqs[0].Id,
+			Id:         req.Id,
 			ClientId:   "go-cometd-client-id",
 			Advice: map[string]interface{}{
 				"reconnect": "retry",
@@ -416,53 +426,45 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 				"supportedConnectionTypes": []string{"streaming"},
 			},
 		}
-		json.NewEncoder(w).Encode([]CometdRequest{response})
-		return
-	}
 
-	if len(reqs) > 0 && reqs[0].Channel == "/meta/connect" {
-		response := CometdRequest{
+	case "/meta/connect":
+		return CometdRequest{
 			Channel:    "/meta/connect",
 			Successful: true,
-			Id:         reqs[0].Id,
-			ClientId:   reqs[0].ClientId,
+			Id:         req.Id,
+			ClientId:   req.ClientId,
+			Advice: map[string]interface{}{
+				"reconnect": "retry",
+				"interval":  0,
+			},
 			Data: map[string]interface{}{
 				"reconnect": "retry",
-				"interval": 0,
+				"interval":  0,
 			},
 		}
-		json.NewEncoder(w).Encode([]CometdRequest{response})
-		return
-	}
 
-	if len(reqs) > 0 && reqs[0].Channel == "/meta/subscribe" {
-		response := CometdRequest{
+	case "/meta/subscribe":
+		return CometdRequest{
 			Channel:    "/meta/subscribe",
 			Successful: true,
-			Id:         reqs[0].Id,
-			ClientId:   reqs[0].ClientId,
+			Id:         req.Id,
+			ClientId:   req.ClientId,
 		}
-		json.NewEncoder(w).Encode([]CometdRequest{response})
-		return
-	}
 
-	if len(reqs) > 0 && reqs[0].Channel == "/meta/disconnect" {
-		response := CometdRequest{
+	case "/meta/disconnect":
+		return CometdRequest{
 			Channel:    "/meta/disconnect",
 			Successful: true,
-			Id:         reqs[0].Id,
-			ClientId:   reqs[0].ClientId,
+			Id:         req.Id,
+			ClientId:   req.ClientId,
 		}
-		json.NewEncoder(w).Encode([]CometdRequest{response})
-		return
-	}
 
-	if len(reqs) > 0 && reqs[0].Channel == "/slim/serverstatus" {
-		response := CometdRequest{
+	case "/slim/serverstatus":
+		return CometdRequest{
 			Channel:    "/slim/serverstatus",
 			Successful: true,
-			Id:         reqs[0].Id,
-			ClientId:   reqs[0].ClientId,
+			Id:         req.Id,
+			ClientId:   req.ClientId,
 			Data: map[string]interface{}{
 				"version":  "9.0",
 				"uuid":     m.UUID,
@@ -473,11 +475,15 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 				"compatible": true,
 			},
 		}
-		json.NewEncoder(w).Encode([]CometdRequest{response})
-		return
-	}
 
-	json.NewEncoder(w).Encode([]CometdRequest{{Channel: "test", Successful: true}})
+	default:
+		return CometdRequest{
+			Channel:    req.Channel,
+			Successful: true,
+			Id:         req.Id,
+			ClientId:   req.ClientId,
+		}
+	}
 }
 
 // handleJsonRpc handles JSON-RPC protocol requests
