@@ -391,8 +391,13 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 	}
 	var reqs []CometdRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqs); err != nil {
+		fmt.Printf("[CometD] failed to decode request: %v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+
+	for i, req := range reqs {
+		fmt.Printf("[CometD] <- req[%d] channel=%q clientId=%q\n", i, req.Channel, req.ClientId)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -404,6 +409,9 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 	for _, req := range reqs {
 		resp := cometdResponse(req, m)
 		resps = append(resps, resp)
+	}
+	for i, resp := range resps {
+		fmt.Printf("[CometD] -> resp[%d] channel=%q clientId=%q\n", i, resp.Channel, resp.ClientId)
 	}
 	json.NewEncoder(w).Encode(resps)
 }
