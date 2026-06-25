@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,14 +15,77 @@ import (
 )
 
 const (
-	DefaultPort = 3483
+	DefaultPort    = 3483
+	MulticastGroup = "239.255.255.250"
 )
 
 type ServerMetadata struct {
 	IPAddress string
 	Name      string
 	UUID      string
+	JSONPort  string
+	CLIPort   string
 	Version   string
+}
+
+type CometdRequest struct {
+	Channel    string                 `json:"channel"`
+	ClientId   string                 `json:"clientId,omitempty"`
+	Id         interface{}            `json:"id,omitempty"`
+	Successful bool                   `json:"successful"`
+	Data       map[string]interface{} `json:"data,omitempty"`
+}
+
+type CometdResponse struct {
+	Channel    string                 `json:"channel"`
+	Successful bool                   `json:"successful"`
+	Id         interface{}            `json:"id,omitempty"`
+	ClientId   string                 `json:"clientId,omitempty"`
+	Data       map[string]interface{} `json:"data,omitempty"`
+}
+
+type JsonRpcRequest struct {
+	Id     interface{}   `json:"id"`
+	Method string        `json:"method"`
+	Params []interface{} `json:"params"`
+}
+
+type JsonRpcResponse struct {
+	Id     interface{}            `json:"id"`
+	Result map[string]interface{} `json:"result"`
+}
+
+// parseHELO parses the HELO payload and returns heloInfo struct
+func parseHELO(payload []byte) heloInfo {
+	h := heloInfo{}
+	if len(payload) < 2 {
+		return h
+	}
+	h.DeviceID = payload[0]
+	h.Revision = payload[1]
+	if len(payload) >= 8 {
+		mac := payload[2:8]
+		h.MAC = fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x",
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
+	}
+	if len(payload) >= 36 {
+		h.Lang = strings.TrimRight(string(payload[34:36]), "\x00")
+	}
+	if len(payload) > 36 {
+		h.Capabilities = string(payload[36:])
+	}
+	return h
+}
+
+// heloInfo struct for HELO packet processing
+// Using the same struct name but this needs to be defined above
+
+type heloInfo struct {
+	DeviceID     uint8
+	Revision     uint8
+	MAC          string
+	Lang         string
+	Capabilities string
 }
 
 // readPacket reads one complete SlimProto packet from a TCP connection.
@@ -114,28 +179,32 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 
 		switch opcode {
 		case "HELO":
-			fmt.Printf("[TCP] HELO from %s received\n", remote)
+			h := parseHELO(payload)
+			fmt.Printf("[TCP] HELO from %s  device=%d rev=%d mac=%s lang=%s caps=%q\n",
+				remote, h.DeviceID, h.Revision, h.MAC, h.Lang, h.Capabilities)
+
 			heloReceived = true
+
 			if err := sendVers(conn, m.Version); err != nil {
 				fmt.Printf("[TCP] %s error sending vers: %v\n", remote, err)
 				return
 			}
+
 			if err := sendSetdName(conn, m.Name); err != nil {
 				fmt.Printf("[TCP] %s error sending setd name: %v\n", remote, err)
 				return
 			}
+
 			fmt.Printf("[TCP] %s HELO complete, connection established\n", remote)
 
-			// Immediately send strm #28 after HELO
+			// Immediately send strm #28 after HELO - critical for client compatibility
 			if !strm28Sent {
 				strm28Sent = true
-				go func() {
-					if err := sendStrm(conn, 's', 28, "Track 28", "Artist 28", "Album 28", 300); err != nil {
-						fmt.Printf("[TCP] %s error sending strm #28: %v\n", remote, err)
-					} else {
-						fmt.Printf("[TCP] %s strm #28 sent to client\n", remote)
-					}
-				}()
+				if err := sendStrm(conn, 's', 28, "Track 28", "Artist 28", "Album 28", 300); err != nil {
+					fmt.Printf("[TCP] %s error sending strm #28: %v\n", remote, err)
+				} else {
+					fmt.Printf("[TCP] %s strm #28 sent to client\n", remote)
+				}
 			}
 
 		case "STAT":
@@ -187,30 +256,321 @@ func startTCPServer(metadata *ServerMetadata) {
 	}
 }
 
+// handleUDPPacket handles incoming UDP discovery requests from clients
+func handleUDPPacket(conn *net.UDPConn, data []byte, raddr *net.UDPAddr, m *ServerMetadata, mode string) {
+	switch data[0] {
+	case 'e': // TLV discovery request
+		tags := parseTLVs(data[1:])
+		fmt.Printf("[%s] TLV request from %v tags=%v\n", mode, raddr, tags)
+		rsp := buildTLVResponse(tags, m)
+		conn.WriteToUDP(rsp, raddr)
+		fmt.Printf("[%s] TLV response sent to %v\n", mode, raddr)
+
+	case 'd': // legacy discovery request
+		fmt.Printf("[%s] Legacy request from %v\n", mode, raddr)
+		conn.WriteToUDP(buildLegacyResponse(m), raddr)
+		fmt.Printf("[%s] Legacy response sent to %v\n", mode, raddr)
+
+	default:
+		fmt.Printf("[%s] Unknown UDP prefix 0x%02x from %v\n", mode, data[0], raddr)
+	}
+}
+
+// startUDPListener starts UDP listener for SlimProto discovery
+func startUDPListener(readConn, writeConn *net.UDPConn, m *ServerMetadata, mode string) {
+	buf := make([]byte, 1024)
+	for {
+		n, raddr, err := readConn.ReadFromUDP(buf)
+		if err != nil {
+			continue
+		}
+		if n > 0 {
+			handleUDPPacket(writeConn, buf[:n], raddr, m, mode)
+		}
+		}
+}
+
+// parseTLVs extracts tags from TLV payload
+func parseTLVs(data []byte) []string {
+	var tags []string
+	idx := 0
+	for idx <= len(data)-5 {
+		tag := string(data[idx : idx+4])
+		length := int(data[idx+4])
+		tags = append(tags, tag)
+		idx += 5 + length
+	}
+	return tags
+}
+
+// buildTLVResponse constructs a TLV response with requested server metadata
+func buildTLVResponse(tags []string, m *ServerMetadata) []byte {
+	if len(tags) == 0 {
+		tags = []string{"NAME", "IPAD", "JSON", "VERS", "UUID"}
+	}
+	rsp := []byte{'E'}
+	for _, tag := range tags {
+		var val string
+		switch tag {
+		case "NAME":
+			val = m.Name
+		case "IPAD":
+			val = m.IPAddress
+		case "JSON":
+			val = m.JSONPort
+		case "CLIP":
+			val = m.CLIPort
+		case "VERS":
+			val = m.Version
+		case "UUID":
+			val = m.UUID
+		}
+		if val != "" {
+			valLen := len(val)
+			if valLen > 255 {
+				valLen = 255
+			}
+			rsp = append(rsp, []byte(tag)...)
+			rsp = append(rsp, byte(valLen))
+			rsp = append(rsp, []byte(val[:valLen])...)
+		}
+	}
+	return rsp
+}
+
+// buildLegacyResponse constructs a legacy UDP discovery response
+func buildLegacyResponse(m *ServerMetadata) []byte {
+	rsp := make([]byte, 17)
+	rsp[0] = 'D'
+	n := m.IPAddress
+	if len(n) > 16 {
+		n = n[:16]
+	}
+	copy(rsp[1:], []byte(n))
+	for i := 1 + len(n); i < 17; i++ {
+		rsp[i] = 0
+	}
+	return rsp
+}
+
+// joinMulticast tries to join the multicast group for multicasting support
+func joinMulticast(conn *net.UDPConn, group net.IP) error {
+	if c, err := net.ListenMulticastUDP("udp4", nil, &net.UDPAddr{IP: group, Port: DefaultPort}); err == nil {
+		defer c.Close()
+	}
+	return nil
+}
+
+// startHTTPServer starts the HTTP CometD server (for JSON-RPC and CometD
+func startHTTPServer(m *ServerMetadata) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/cometd", func(w http.ResponseWriter, r *http.Request) {
+		handleCometd(w, r, m)
+	})
+	mux.HandleFunc("/jsonrpc", func(w http.ResponseWriter, r *http.Request) {
+		handleJsonRpc(w, r, m)
+	})
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"ok":true}`))
+	})
+
+	fmt.Printf("Starting HTTP server on port %s...\n", m.JSONPort)
+	if err := http.ListenAndServe(":"+m.JSONPort, mux); err != nil {
+		fmt.Printf("HTTP server error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// handleCometd handles CometD protocol requests
+func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var reqs []CometdRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqs); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.WriteHeader(http.StatusOK)
+
+	if len(reqs) > 0 && reqs[0].Channel == "/meta/handshake" {
+		response := CometdRequest{
+			Channel:    "/meta/handshake",
+			Successful: true,
+			Id:         reqs[0].Id,
+			Data: map[string]interface{}{
+				"version":    "1.0",
+				"minimumVersion": "1.0",
+				"supportedConnectionTypes": []string{"streaming"},
+				"clientId":   "go-cometd-client-id",
+			},
+		}
+		json.NewEncoder(w).Encode([]CometdRequest{response})
+		return
+	}
+
+	if len(reqs) > 0 && reqs[0].Channel == "/meta/connect" {
+		response := CometdRequest{
+			Channel:    "/meta/connect",
+			Successful: true,
+			Id:         reqs[0].Id,
+			ClientId:   reqs[0].ClientId,
+			Data: map[string]interface{}{
+				"reconnect": "retry",
+				"interval": 0,
+			},
+		}
+		json.NewEncoder(w).Encode([]CometdRequest{response})
+		return
+	}
+
+	if len(reqs) > 0 && reqs[0].Channel == "/meta/subscribe" {
+		response := CometdRequest{
+			Channel:    "/meta/subscribe",
+			Successful: true,
+			Id:         reqs[0].Id,
+			ClientId:   reqs[0].ClientId,
+		}
+		json.NewEncoder(w).Encode([]CometdRequest{response})
+		return
+	}
+
+	if len(reqs) > 0 && reqs[0].Channel == "/meta/disconnect" {
+		response := CometdRequest{
+			Channel:    "/meta/disconnect",
+			Successful: true,
+			Id:         reqs[0].Id,
+			ClientId:   reqs[0].ClientId,
+		}
+		json.NewEncoder(w).Encode([]CometdRequest{response})
+		return
+	}
+
+	if len(reqs) > 0 && reqs[0].Channel == "/slim/serverstatus" {
+		response := CometdRequest{
+			Channel:    "/slim/serverstatus",
+			Successful: true,
+			Id:         reqs[0].Id,
+			ClientId:   reqs[0].ClientId,
+			Data: map[string]interface{}{
+				"version":  "9.0",
+				"uuid":     m.UUID,
+				"name":     m.Name,
+				"ip":       m.IPAddress,
+				"port":     m.JSONPort,
+				"cliport":  m.CLIPort,
+				"compatible": true,
+			},
+		}
+		json.NewEncoder(w).Encode([]CometdRequest{response})
+		return
+	}
+
+	json.NewEncoder(w).Encode([]CometdRequest{{Channel: "test", Successful: true}})
+}
+
+// handleJsonRpc handles JSON-RPC protocol requests
+func handleJsonRpc(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
+	var req JsonRpcRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	fmt.Printf("[JSON-RPC] method=%s params=%v\n", req.Method, req.Params)
+	resp := JsonRpcResponse{Id: req.Id, Result: make(map[string]interface{})}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// getLocalIPv4 returns the first non-loopback IPv4 address on the system
+func getLocalIPv4() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		panic(err)
+	}
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+			return ipnet.IP.String()
+		}
+	}
+	panic(fmt.Errorf("no non-loopback IPv4 address found"))
+}
+
 func main() {
-	portFlag := flag.Int("port", DefaultPort, "UDP/TCP Port for SlimProto")
 	nameFlag := flag.String("name", "GoSlimServer", "Friendly name of the server")
 	uuidFlag := flag.String("uuid", "goslimserver-uuid-1234", "UUID of the server")
+	jsonPortFlag := flag.String("json", "9000", "CometD HTTP port")
+	cliPortFlag := flag.String("cli", "9090", "CLI port")
 	versionFlag := flag.String("version", "9.0", "Server version string")
 	flag.Parse()
 
+	name := *nameFlag
+	uuid := *uuidFlag
+	jsonPort := *jsonPortFlag
+	cliPort := *cliPortFlag
+	version := *versionFlag
+
+	// Detect local IP address for discovery
+	ipAddress := getLocalIPv4()
+
 	metadata := &ServerMetadata{
-		Name:    *nameFlag,
-		UUID:    *uuidFlag,
-		Version: *versionFlag,
+		IPAddress: ipAddress,
+		Name:      name,
+		UUID:      uuid,
+		JSONPort:  jsonPort,
+		CLIPort:   cliPort,
+		Version:   version,
 	}
 
 	fmt.Println("==================================================")
 	fmt.Println("            SlimProto Server (Go)")
 	fmt.Println("==================================================")
 	fmt.Printf("  Name    : %s\n", metadata.Name)
+	fmt.Printf("  IP      : %s\n", metadata.IPAddress)
 	fmt.Printf("  UUID    : %s\n", metadata.UUID)
+	fmt.Printf("  JSON    : %s\n", metadata.JSONPort)
 	fmt.Printf("  Version : %s\n", metadata.Version)
 	fmt.Println("--------------------------------------------------")
 
-	_ = portFlag // Fixed port is handled by DefaultPort constant above
+	// Start HTTP CometD server (required for client discovery)
+	go startHTTPServer(metadata)
 
+	// Start TCP SlimProto control server (port 3483)
 	go startTCPServer(metadata)
+
+	// Setup UDP discovery for network discovery
+	localAddr := fmt.Sprintf("0.0.0.0:%d", DefaultPort)
+	udpAddr, err := net.ResolveUDPAddr("udp4", localAddr)
+	if err != nil {
+		panic(err)
+	}
+	broadcastConn, err := net.ListenUDP("udp4", udpAddr)
+	if err != nil {
+		panic(err)
+	}
+	defer broadcastConn.Close()
+	fmt.Printf("Listening for UDP discovery on %s...\n", localAddr)
+
+	// Start UDP broadcast listener
+	go startUDPListener(broadcastConn, broadcastConn, metadata, "Broadcast")
+
+	// Start UDP multicast listener
+	mcastAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", MulticastGroup, DefaultPort))
+	if err == nil {
+		if mcastConn, err := net.ListenMulticastUDP("udp4", nil, mcastAddr); err == nil {
+			defer mcastConn.Close()
+			fmt.Printf("Listening for UDP multicast on %s:%d...\n", MulticastGroup, DefaultPort)
+			go startUDPListener(mcastConn, broadcastConn, metadata, "Multicast")
+		} else {
+			fmt.Printf("Warning: multicast listener failed: %v\n", err)
+		}
+	}
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
