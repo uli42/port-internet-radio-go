@@ -213,6 +213,21 @@ func sendStrmCommand(conn net.Conn, serverPort uint16) error {
 	return sendPacket(conn, "strm", payload)
 }
 
+// sendAudg sends an audio gain packet setting volume to max.
+func sendAudg(conn net.Conn) error {
+	payload := make([]byte, 8)
+	binary.BigEndian.PutUint32(payload[0:4], 128) // gainL = 128 (→ 65536 after << 9)
+	binary.BigEndian.PutUint32(payload[4:8], 128) // gainR = 128
+	return sendPacket(conn, "audg", payload)
+}
+
+// sendStrmKeepalive sends a strm timestamp/keepalive packet.
+func sendStrmKeepalive(conn net.Conn) error {
+	payload := make([]byte, 28)
+	payload[0] = 't' // timestamp command (keepalive)
+	return sendPacket(conn, "strm", payload)
+}
+
 // handleStreamStart starts streaming a URL to the SqueezePlay player.
 func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	streamURL := r.URL.Query().Get("url")
@@ -227,6 +242,11 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	if conn == nil {
 		http.Error(w, "no SlimProto connection", http.StatusServiceUnavailable)
 		return
+	}
+
+	// Set max volume before streaming
+	if err := sendAudg(conn); err != nil {
+		fmt.Printf("[Stream] sendAudg error: %v\n", err)
 	}
 
 	listener, err := net.Listen("tcp", ":0")
@@ -245,8 +265,38 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Start keepalive goroutine (strm 't' every ~4s)
+	keepaliveStop := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(4 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := sendStrmKeepalive(conn); err != nil {
+					return
+				}
+			case <-keepaliveStop:
+				return
+			}
+		}
+	}()
+
+	// Start fetching the URL in parallel with accepting the player connection
+	type fetchResult struct {
+		resp *http.Response
+		err  error
+	}
+	fetchCh := make(chan fetchResult, 1)
+	go func() {
+		resp, err := http.Get(streamURL)
+		fetchCh <- fetchResult{resp, err}
+	}()
+
 	go func() {
 		defer listener.Close()
+		defer close(keepaliveStop)
+
 		playerConn, err := listener.Accept()
 		if err != nil {
 			fmt.Printf("[Stream] accept error: %v\n", err)
@@ -254,15 +304,16 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		}
 		defer playerConn.Close()
 
-		fmt.Printf("[Stream] player connected, proxying %s\n", streamURL)
-
-		// Connect to the stream URL
-		resp, err := http.Get(streamURL)
-		if err != nil {
-			fmt.Printf("[Stream] http get error: %v\n", err)
+		// Wait for HTTP fetch to complete
+		result := <-fetchCh
+		if result.err != nil {
+			fmt.Printf("[Stream] http get error: %v\n", result.err)
 			return
 		}
+		resp := result.resp
 		defer resp.Body.Close()
+
+		fmt.Printf("[Stream] player connected, proxying %s\n", streamURL)
 
 		buf := make([]byte, 65536)
 		for {
