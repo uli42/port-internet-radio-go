@@ -57,6 +57,9 @@ var (
 
 	connectedPlayers   = make(map[string]PlayerInfo)
 	connectedPlayersMu sync.RWMutex
+
+	slimConn   net.Conn
+	slimConnMu sync.Mutex
 )
 
 type PlayerInfo struct {
@@ -183,6 +186,108 @@ func sendPacket(w io.Writer, opcode string, payload []byte) error {
 	return err
 }
 
+// sendStrmCommand sends a strm packet telling the player to start streaming
+// from a specific port. The player connects to serverIp:serverPort and receives
+// audio data in the format specified by mode (e.g. 'm' = MP3/mad).
+func sendStrmCommand(conn net.Conn, serverPort uint16) error {
+	payload := make([]byte, 28)
+	payload[0] = 's'                     // command: start
+	payload[1] = '1'                     // autostart
+	payload[2] = 'm'                     // mode: MP3 (mad decoder)
+	payload[3] = 0                       // pcmSampleSize
+	payload[4] = 0                       // pcmSampleRate
+	payload[5] = 0                       // pcmChannels
+	payload[6] = 0                       // pcmEndianness
+	payload[7] = 0                       // threshold
+	payload[8] = 0                       // spdifEnable
+	payload[9] = 0                       // transitionPeriod (1 byte)
+	payload[10] = 0                      // transitionType
+	payload[11] = 0                      // flags
+	payload[12] = 0                      // outputThreshold
+	payload[13] = 0                      // slaves
+	// bytes 14-17: replayGain = 0 (4 bytes)
+	// bytes 18-19: serverPort (2 bytes BE)
+	binary.BigEndian.PutUint16(payload[18:20], serverPort)
+	// bytes 20-23: serverIp = 0 (use current server IP)
+	// bytes 24-27: reserved
+	return sendPacket(conn, "strm", payload)
+}
+
+// handleStreamStart starts streaming a URL to the SqueezePlay player.
+func handleStreamStart(w http.ResponseWriter, r *http.Request) {
+	streamURL := r.URL.Query().Get("url")
+	if streamURL == "" {
+		http.Error(w, "missing url parameter", http.StatusBadRequest)
+		return
+	}
+
+	slimConnMu.Lock()
+	conn := slimConn
+	slimConnMu.Unlock()
+	if conn == nil {
+		http.Error(w, "no SlimProto connection", http.StatusServiceUnavailable)
+		return
+	}
+
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		fmt.Printf("[Stream] listen error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	port := uint16(listener.Addr().(*net.TCPAddr).Port)
+	fmt.Printf("[Stream] listening on port %d for %s\n", port, streamURL)
+
+	if err := sendStrmCommand(conn, port); err != nil {
+		listener.Close()
+		fmt.Printf("[Stream] sendStrmCommand error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	go func() {
+		defer listener.Close()
+		playerConn, err := listener.Accept()
+		if err != nil {
+			fmt.Printf("[Stream] accept error: %v\n", err)
+			return
+		}
+		defer playerConn.Close()
+
+		fmt.Printf("[Stream] player connected, proxying %s\n", streamURL)
+
+		// Connect to the stream URL
+		resp, err := http.Get(streamURL)
+		if err != nil {
+			fmt.Printf("[Stream] http get error: %v\n", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		buf := make([]byte, 65536)
+		for {
+			n, err := resp.Body.Read(buf)
+			if n > 0 {
+				if _, werr := playerConn.Write(buf[:n]); werr != nil {
+					fmt.Printf("[Stream] write error: %v\n", werr)
+					return
+				}
+			}
+			if err != nil {
+				if err == io.EOF {
+					fmt.Printf("[Stream] stream ended\n")
+					return
+				}
+				fmt.Printf("[Stream] read error: %v\n", err)
+				return
+			}
+		}
+	}()
+
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "streaming %s on port %d\n", streamURL, port)
+}
+
 // sendVers sends the server version string.
 func sendVers(conn net.Conn, version string) error {
 	return sendPacket(conn, "vers", []byte(version))
@@ -229,6 +334,10 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 	defer conn.Close()
 	remote := conn.RemoteAddr().String()
 	fmt.Printf("[TCP] New SlimProto connection from %s\n", remote)
+
+	slimConnMu.Lock()
+	slimConn = conn
+	slimConnMu.Unlock()
 
 	heloReceived := false
 	clientMAC := ""
@@ -552,6 +661,7 @@ func handleArtwork(w http.ResponseWriter, r *http.Request) {
 // startHTTPServer starts the HTTP CometD server (for JSON-RPC and CometD
 func startHTTPServer(m *ServerMetadata) {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/stream/play", handleStreamStart)
 	mux.HandleFunc("/cometd", func(w http.ResponseWriter, r *http.Request) {
 		handleCometd(w, r, m)
 	})
