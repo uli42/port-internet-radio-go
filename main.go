@@ -6,12 +6,16 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 )
 
 const (
@@ -29,20 +33,82 @@ type ServerMetadata struct {
 }
 
 type CometdRequest struct {
-	Channel    string                 `json:"channel"`
-	ClientId   string                 `json:"clientId,omitempty"`
-	Id         interface{}            `json:"id,omitempty"`
-	Successful bool                   `json:"successful"`
-	Advice     map[string]interface{} `json:"advice,omitempty"`
-	Data       map[string]interface{} `json:"data,omitempty"`
+	Channel                  string                 `json:"channel"`
+	ClientId                 string                 `json:"clientId,omitempty"`
+	Id                       interface{}            `json:"id,omitempty"`
+	Successful               bool                   `json:"successful"`
+	Advice                   map[string]interface{} `json:"advice,omitempty"`
+	Data                     map[string]interface{} `json:"data,omitempty"`
+	Version                  string                 `json:"version,omitempty"`
+	MinimumVersion           string                 `json:"minimumVersion,omitempty"`
+	SupportedConnectionTypes []string               `json:"supportedConnectionTypes,omitempty"`
+	Subscription             interface{}            `json:"subscription,omitempty"`
+	ConnectionType           string                 `json:"connectionType,omitempty"`
 }
 
-type CometdResponse struct {
-	Channel    string                 `json:"channel"`
-	Successful bool                   `json:"successful"`
-	Id         interface{}            `json:"id,omitempty"`
-	ClientId   string                 `json:"clientId,omitempty"`
-	Data       map[string]interface{} `json:"data,omitempty"`
+type StreamingClient struct {
+	events   chan []interface{}
+	clientId string
+}
+
+var (
+	streamingClients   = make(map[string]*StreamingClient)
+	streamingClientsMu sync.Mutex
+
+	connectedPlayers   = make(map[string]PlayerInfo)
+	connectedPlayersMu sync.RWMutex
+)
+
+type PlayerInfo struct {
+	MAC   string
+	Name  string
+	Model string
+	UUID  string
+}
+
+func addConnectedPlayer(mac, name, model, uuid string) {
+	connectedPlayersMu.Lock()
+	connectedPlayers[mac] = PlayerInfo{MAC: mac, Name: name, Model: model, UUID: uuid}
+	connectedPlayersMu.Unlock()
+}
+
+func removeConnectedPlayer(mac string) {
+	connectedPlayersMu.Lock()
+	delete(connectedPlayers, mac)
+	connectedPlayersMu.Unlock()
+}
+
+func getConnectedPlayers() []PlayerInfo {
+	connectedPlayersMu.RLock()
+	defer connectedPlayersMu.RUnlock()
+	result := make([]PlayerInfo, 0, len(connectedPlayers))
+	for _, p := range connectedPlayers {
+		result = append(result, p)
+	}
+	return result
+}
+
+func registerStreamingClient(clientId string) *StreamingClient {
+	sc := &StreamingClient{
+		events:   make(chan []interface{}, 100),
+		clientId: clientId,
+	}
+	streamingClientsMu.Lock()
+	streamingClients[clientId] = sc
+	streamingClientsMu.Unlock()
+	return sc
+}
+
+func unregisterStreamingClient(clientId string) {
+	streamingClientsMu.Lock()
+	delete(streamingClients, clientId)
+	streamingClientsMu.Unlock()
+}
+
+func getStreamingClient(clientId string) *StreamingClient {
+	streamingClientsMu.Lock()
+	defer streamingClientsMu.Unlock()
+	return streamingClients[clientId]
 }
 
 type JsonRpcRequest struct {
@@ -165,7 +231,27 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 	fmt.Printf("[TCP] New SlimProto connection from %s\n", remote)
 
 	heloReceived := false
-	strm28Sent := false
+	clientMAC := ""
+
+	// Keepalive goroutine: SqueezePlay silently discards "test" packets
+	// but resets its 60-second inactivity timer on any received data.
+	done := make(chan struct{})
+	defer close(done)
+		go func() {
+			ticker := time.NewTicker(25 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					if err := sendPacket(conn, "test", []byte{}); err != nil {
+						return
+					}
+					fmt.Printf("[TCP] %s keepalive sent\n", remote)
+				case <-done:
+					return
+				}
+			}
+		}()
 
 	for {
 		opcode, payload, err := readPacket(conn)
@@ -185,6 +271,10 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 				remote, h.DeviceID, h.Revision, h.MAC, h.Lang, h.Capabilities)
 
 			heloReceived = true
+			clientMAC = h.MAC
+
+			addConnectedPlayer(h.MAC, h.MAC, "squeezeplay", "player-"+h.MAC)
+			pushServerstatusToAll(m)
 
 			if err := sendVers(conn, m.Version); err != nil {
 				fmt.Printf("[TCP] %s error sending vers: %v\n", remote, err)
@@ -198,14 +288,21 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 
 			fmt.Printf("[TCP] %s HELO complete, connection established\n", remote)
 
-			// Immediately send strm #28 after HELO - critical for client compatibility
-			if !strm28Sent {
-				strm28Sent = true
-				if err := sendStrm(conn, 's', 28, "Track 28", "Artist 28", "Album 28", 300); err != nil {
-					fmt.Printf("[TCP] %s error sending strm #28: %v\n", remote, err)
-				} else {
-					fmt.Printf("[TCP] %s strm #28 sent to client\n", remote)
+			// Send additional SETD messages so the client receives enough
+			// within its read timeout period to consider setup complete.
+			for _, kv := range []struct{ cmd byte; val string }{
+				{1, "EN"},    // language
+				{2, "1"},     // canRandomPlay
+				{3, "1"},     // canMusicFolder
+				{4, "1"},     // canInternetRadio
+			} {
+				payload := []byte{kv.cmd}
+				payload = append(payload, []byte(kv.val)...)
+				if err := sendPacket(conn, "setd", payload); err != nil {
+					fmt.Printf("[TCP] %s error sending SETD %d: %v\n", remote, kv.cmd, err)
+					return
 				}
+				fmt.Printf("[TCP] %s SETD %d sent\n", remote, kv.cmd)
 			}
 
 		case "STAT":
@@ -221,6 +318,10 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 
 		case "BYE!":
 			fmt.Printf("[TCP] %s BYE! received\n", remote)
+			if clientMAC != "" {
+				removeConnectedPlayer(clientMAC)
+				pushServerstatusToAll(m)
+			}
 			return
 
 		case "DSCO":
@@ -229,10 +330,71 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 				reason = payload[0]
 			}
 			fmt.Printf("[TCP] %s DSCO reason=%d\n", remote, reason)
+			if clientMAC != "" {
+				removeConnectedPlayer(clientMAC)
+				pushServerstatusToAll(m)
+			}
 			return
 
 		default:
 			fmt.Printf("[TCP] %s unknown opcode %q (%d bytes)\n", remote, opcode, len(payload))
+		}
+	}
+
+	// Connection lost — clean up player if not already removed via BYE!/DSCO
+	if clientMAC != "" {
+		removeConnectedPlayer(clientMAC)
+		pushServerstatusToAll(m)
+	}
+}
+
+// pushServerstatusToAll pushes a serverstatus event to all streaming CometD clients.
+func pushServerstatusToAll(m *ServerMetadata) {
+	players := getConnectedPlayers()
+	playerCount := len(players)
+
+	playersLoop := make([]map[string]interface{}, 0, playerCount)
+	for _, p := range players {
+		playersLoop = append(playersLoop, map[string]interface{}{
+			"playerid":  p.MAC,
+			"name":      p.Name,
+			"model":     p.Model,
+			"connected": 1,
+			"power":     1,
+			"uuid":      p.UUID,
+			"ip":        m.IPAddress,
+		})
+	}
+
+	data := map[string]interface{}{
+		"version":         m.Version,
+		"uuid":            m.UUID,
+		"name":            m.Name,
+		"ip":              m.IPAddress,
+		"port":            m.JSONPort,
+		"cliport":         m.CLIPort,
+		"compatible":      true,
+		"player count":    playerCount,
+		"players_loop":    playersLoop,
+		"canMusicFolder":  true,
+		"canRandomPlay":   true,
+		"canInternetRadio": true,
+		"canRemoteStream": true,
+		"lang":            "EN",
+	}
+
+	streamingClientsMu.Lock()
+	defer streamingClientsMu.Unlock()
+	for clientId, sc := range streamingClients {
+		select {
+		case sc.events <- []interface{}{
+			map[string]interface{}{
+				"channel": "/" + clientId + "/slim/serverstatus",
+				"data":    data,
+			},
+		}:
+		default:
+			fmt.Printf("[CometD] dropping serverstatus push for clientId=%s (channel full)\n", clientId)
 		}
 	}
 }
@@ -288,7 +450,7 @@ func startUDPListener(readConn, writeConn *net.UDPConn, m *ServerMetadata, mode 
 		if n > 0 {
 			handleUDPPacket(writeConn, buf[:n], raddr, m, mode)
 		}
-		}
+	}
 }
 
 // parseTLVs extracts tags from TLV payload
@@ -362,6 +524,31 @@ func joinMulticast(conn *net.UDPConn, group net.IP) error {
 	return nil
 }
 
+// A 40x40 gray PNG placeholder image embedded directly.
+// Generated as a minimal valid PNG with a neutral gray fill.
+var placeholderPNG = []byte{
+	0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+	0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+	0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde, 0x00, 0x00, 0x00,
+	0x10, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x62, 0x3a, 0x73, 0xe6, 0x0c,
+	0x20, 0x00, 0x00, 0xff, 0xff, 0x04, 0xd4, 0x02, 0x67, 0x77, 0xfa, 0xa8,
+	0xe6, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60,
+	0x82,
+}
+
+// handleArtwork serves placeholder images for artwork requests.
+// The SqueezePlay client requests images at /music/<id>/cover[_spec][.ext]
+func handleArtwork(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+	fmt.Printf("[HTTP] artwork request: %s\n", path)
+
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "max-age=86400")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(placeholderPNG)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(placeholderPNG)
+}
+
 // startHTTPServer starts the HTTP CometD server (for JSON-RPC and CometD
 func startHTTPServer(m *ServerMetadata) {
 	mux := http.NewServeMux()
@@ -371,7 +558,17 @@ func startHTTPServer(m *ServerMetadata) {
 	mux.HandleFunc("/jsonrpc", func(w http.ResponseWriter, r *http.Request) {
 		handleJsonRpc(w, r, m)
 	})
+	mux.HandleFunc("/music/", handleArtwork)
+	mux.HandleFunc("/contributor/", handleArtwork)
+	mux.HandleFunc("/imageproxy/", handleArtwork)
+	mux.HandleFunc("/html/", handleArtwork)
+	mux.HandleFunc("/plugins/", handleArtwork)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// If it looks like an image/artwork request, serve placeholder
+		if r.URL.Path != "/" && r.URL.Path != "/cometd" && r.URL.Path != "/jsonrpc" {
+			handleArtwork(w, r)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"ok":true}`))
 	})
@@ -396,19 +593,53 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 		return
 	}
 
+	fmt.Printf("[CometD] from %s\n", r.RemoteAddr)
 	for i, req := range reqs {
 		fmt.Printf("[CometD] <- req[%d] channel=%q clientId=%q\n", i, req.Channel, req.ClientId)
 	}
 
+	// Detect request type and assign/extract clientId
+	isStreaming := false
+	isHandshake := false
+	clientId := ""
+	for _, req := range reqs {
+		switch req.Channel {
+		case "/meta/handshake":
+			isHandshake = true
+		case "/meta/connect", "/meta/reconnect":
+			isStreaming = true
+			clientId = req.ClientId
+		}
+	}
+
+	// If this is a connect streaming request with no clientId yet, generate one
+	if isStreaming && clientId == "" {
+		clientId = fmt.Sprintf("%08x", rand.Int31())
+	}
+
+	// Generate responses and detect subscribe/request channels for event scheduling
 	resps := make([]CometdRequest, 0, len(reqs))
 	for _, req := range reqs {
-		resp := cometdResponse(req, m)
+		resp := cometdResponse(req, m, clientId)
 		resps = append(resps, resp)
 	}
+
 	for i, resp := range resps {
 		fmt.Printf("[CometD] -> resp[%d] channel=%q clientId=%q\n", i, resp.Channel, resp.ClientId)
 	}
 
+	if isStreaming {
+		// Register streaming client BEFORE starting the handler, so rhttp
+		// handlers that push events via clientId can find it immediately.
+		sc := registerStreamingClient(clientId)
+		defer unregisterStreamingClient(clientId)
+		handleCometdStreaming(w, clientId, resps, sc, m)
+	} else {
+		handleCometdNormal(w, resps, isHandshake)
+	}
+}
+
+func handleCometdNormal(w http.ResponseWriter, resps []CometdRequest, isHandshake bool) {
 	body, err := json.Marshal(resps)
 	if err != nil {
 		fmt.Printf("[CometD] marshal error: %v\n", err)
@@ -422,47 +653,152 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 	w.Write(body)
 }
 
-func cometdResponse(req CometdRequest, m *ServerMetadata) CometdRequest {
+func handleCometdStreaming(w http.ResponseWriter, clientId string, initialResps []CometdRequest, sc *StreamingClient, m *ServerMetadata) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		fmt.Printf("[CometD] streaming not supported by ResponseWriter\n")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Mark clientId on responses
+	for i := range initialResps {
+		if initialResps[i].ClientId == "" {
+			initialResps[i].ClientId = clientId
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.WriteHeader(http.StatusOK)
+
+	// Write initial response
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(initialResps); err != nil {
+		fmt.Printf("[CometD] streaming initial write error: %v\n", err)
+		return
+	}
+	flusher.Flush()
+	fmt.Printf("[CometD] streaming started for clientId=%s\n", clientId)
+
+	// Push first serverstatus event immediately so the client gets initial player data
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		players := getConnectedPlayers()
+		pl := make([]map[string]interface{}, 0, len(players))
+		for _, p := range players {
+			pl = append(pl, map[string]interface{}{
+				"playerid":  p.MAC,
+				"name":      p.Name,
+				"model":     p.Model,
+				"connected": 1,
+				"power":     1,
+				"uuid":      p.UUID,
+				"ip":        m.IPAddress,
+			})
+		}
+		sc.events <- []interface{}{
+			map[string]interface{}{
+				"channel": "/" + clientId + "/slim/serverstatus",
+				"data": map[string]interface{}{
+					"version":          m.Version,
+					"uuid":             m.UUID,
+					"name":             m.Name,
+					"ip":               m.IPAddress,
+					"port":             m.JSONPort,
+					"cliport":          m.CLIPort,
+					"compatible":       true,
+					"player count":     len(players),
+					"players_loop":     pl,
+					"canMusicFolder":   true,
+					"canRandomPlay":    true,
+					"canInternetRadio": true,
+					"canRemoteStream":  true,
+					"lang":             "EN",
+				},
+			},
+		}
+	}()
+
+	for {
+		select {
+		case events, ok := <-sc.events:
+			if !ok {
+				fmt.Printf("[CometD] streaming channel closed for clientId=%s\n", clientId)
+				return
+			}
+			if err := enc.Encode(events); err != nil {
+				fmt.Printf("[CometD] streaming write error: %v\n", err)
+				return
+			}
+			flusher.Flush()
+		case <-time.After(180 * time.Second):
+			fmt.Printf("[CometD] streaming timeout for clientId=%s\n", clientId)
+			return
+		}
+	}
+}
+
+func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId string) CometdRequest {
+	clid := req.ClientId
+	if clid == "" {
+		clid = assignedClientId
+	}
+
 	switch req.Channel {
 	case "/meta/handshake":
+		clid = fmt.Sprintf("%08x", rand.Int31())
 		return CometdRequest{
-			Channel:    "/meta/handshake",
-			Successful: true,
-			Id:         req.Id,
-			ClientId:   "go-cometd-client-id",
+			Channel:                  "/meta/handshake",
+			Successful:               true,
+			Id:                       req.Id,
+			ClientId:                 clid,
+			Version:                  "1.0",
+			MinimumVersion:           "1.0",
+			SupportedConnectionTypes: []string{"long-polling", "streaming"},
 			Advice: map[string]interface{}{
 				"reconnect": "retry",
 				"interval":  0,
-			},
-			Data: map[string]interface{}{
-				"version":    "1.0",
-				"minimumVersion": "1.0",
-				"supportedConnectionTypes": []string{"streaming"},
+				"timeout":   60000,
 			},
 		}
 
 	case "/meta/connect":
+		interval := 5000
 		return CometdRequest{
 			Channel:    "/meta/connect",
 			Successful: true,
 			Id:         req.Id,
-			ClientId:   req.ClientId,
+			ClientId:   clid,
 			Advice: map[string]interface{}{
 				"reconnect": "retry",
-				"interval":  0,
+				"interval":  interval,
 			},
-			Data: map[string]interface{}{
+		}
+
+	case "/meta/reconnect":
+		return CometdRequest{
+			Channel:    "/meta/reconnect",
+			Successful: true,
+			Id:         req.Id,
+			ClientId:   clid,
+			Advice: map[string]interface{}{
 				"reconnect": "retry",
-				"interval":  0,
+				"interval":  5000,
 			},
 		}
 
 	case "/meta/subscribe":
+		sub := req.Subscription
+		if sub == nil {
+			sub = ""
+		}
 		return CometdRequest{
-			Channel:    "/meta/subscribe",
-			Successful: true,
-			Id:         req.Id,
-			ClientId:   req.ClientId,
+			Channel:      "/meta/subscribe",
+			Successful:   true,
+			Id:           req.Id,
+			ClientId:     clid,
+			Subscription: sub,
 		}
 
 	case "/meta/disconnect":
@@ -470,23 +806,64 @@ func cometdResponse(req CometdRequest, m *ServerMetadata) CometdRequest {
 			Channel:    "/meta/disconnect",
 			Successful: true,
 			Id:         req.Id,
-			ClientId:   req.ClientId,
+			ClientId:   clid,
 		}
 
-	case "/slim/serverstatus":
+	case "/slim/subscribe":
+		// Extract response clientId from data
+		respClid := ""
+		if req.Data != nil {
+			if respPath, ok := req.Data["response"].(string); ok {
+				if matches := regexp.MustCompile(`/([0-9a-f]{8})/`).FindStringSubmatch(respPath); len(matches) > 1 {
+					respClid = matches[1]
+				}
+			}
+		}
+		if respClid == "" {
+			respClid = clid
+		}
+
+		// Check if this is a serverstatus subscription and push event
+		if req.Data != nil {
+			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) >= 2 {
+				if args, ok := requestArr[1].([]interface{}); ok && len(args) > 0 {
+					if cmd, ok := args[0].(string); ok && cmd == "serverstatus" {
+						done := make(chan struct{}, 1)
+						pushServerStatus(respClid, req.Id, m, done)
+						<-done
+					}
+				}
+			}
+		}
+
 		return CometdRequest{
-			Channel:    "/slim/serverstatus",
+			Channel:    "/slim/subscribe",
 			Successful: true,
 			Id:         req.Id,
-			ClientId:   req.ClientId,
+			ClientId:   clid,
+		}
+
+	case "/slim/request":
+		respClid := ""
+		if req.Data != nil {
+			fmt.Printf("[CometD] /slim/request data: %v\n", req.Data)
+			if respPath, ok := req.Data["response"].(string); ok {
+				if matches := regexp.MustCompile(`/([0-9a-f]{8})/`).FindStringSubmatch(respPath); len(matches) > 1 {
+					respClid = matches[1]
+				}
+			}
+		}
+		if respClid == "" {
+			respClid = clid
+		}
+
+		return CometdRequest{
+			Channel:    "/slim/request",
+			Successful: true,
+			Id:         req.Id,
+			ClientId:   respClid,
 			Data: map[string]interface{}{
-				"version":  "9.0",
-				"uuid":     m.UUID,
-				"name":     m.Name,
-				"ip":       m.IPAddress,
-				"port":     m.JSONPort,
-				"cliport":  m.CLIPort,
-				"compatible": true,
+				"response": []interface{}{},
 			},
 		}
 
@@ -495,9 +872,73 @@ func cometdResponse(req CometdRequest, m *ServerMetadata) CometdRequest {
 			Channel:    req.Channel,
 			Successful: true,
 			Id:         req.Id,
-			ClientId:   req.ClientId,
+			ClientId:   clid,
 		}
 	}
+}
+
+func pushServerStatus(respClid string, id interface{}, m *ServerMetadata, done chan struct{}) {
+	// Retry a few times to find the streaming client (race: subscribe
+	// can arrive before connect establishes the streaming session).
+	var sc *StreamingClient
+	for i := 0; i < 10; i++ {
+		sc = getStreamingClient(respClid)
+		if sc != nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if sc == nil {
+		fmt.Printf("[CometD] no streaming client found for %s\n", respClid)
+		if done != nil {
+			done <- struct{}{}
+		}
+		return
+	}
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+
+		players := getConnectedPlayers()
+		pl := make([]map[string]interface{}, 0, len(players))
+		for _, p := range players {
+			pl = append(pl, map[string]interface{}{
+				"playerid":  p.MAC,
+				"name":      p.Name,
+				"model":     p.Model,
+				"connected": 1,
+				"power":     1,
+				"uuid":      p.UUID,
+				"ip":        m.IPAddress,
+			})
+		}
+
+		sc.events <- []interface{}{
+			map[string]interface{}{
+				"channel": "/" + respClid + "/slim/serverstatus",
+				"id":      id,
+				"data": map[string]interface{}{
+					"version":          m.Version,
+					"uuid":             m.UUID,
+					"name":             m.Name,
+					"ip":               m.IPAddress,
+					"port":             m.JSONPort,
+					"cliport":          m.CLIPort,
+					"compatible":       true,
+					"player count":     len(players),
+					"players_loop":     pl,
+					"canMusicFolder":   true,
+					"canRandomPlay":    true,
+					"canInternetRadio": true,
+					"canRemoteStream":  true,
+					"lang":             "EN",
+				},
+			},
+		}
+		if done != nil {
+			done <- struct{}{}
+		}
+	}()
 }
 
 // handleJsonRpc handles JSON-RPC protocol requests
@@ -508,6 +949,23 @@ func handleJsonRpc(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 		return
 	}
 	fmt.Printf("[JSON-RPC] method=%s params=%v\n", req.Method, req.Params)
+
+	switch req.Method {
+	case "slim.subscribe":
+		// params[0] is the channel path like "/{clientId}/slim/serverstatus"
+		if len(req.Params) > 0 {
+			if channel, ok := req.Params[0].(string); ok {
+				if matches := regexp.MustCompile(`/([0-9a-f]{8})/`).FindStringSubmatch(channel); len(matches) > 1 {
+					clientId := matches[1]
+					// Check if it's a serverstatus subscription
+					if strings.Contains(channel, "serverstatus") {
+						pushServerStatus(clientId, req.Id, m, nil)
+					}
+				}
+			}
+		}
+	}
+
 	resp := JsonRpcResponse{Id: req.Id, Result: make(map[string]interface{})}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
