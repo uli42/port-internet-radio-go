@@ -967,14 +967,31 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 			respClid = clid
 		}
 
+		// Check the request command to determine response format
+		isMenuRequest := false
+		if req.Data != nil {
+			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) > 0 {
+				if cmd, ok := requestArr[0].(string); ok && cmd == "menu" {
+					isMenuRequest = true
+				}
+			}
+		}
+
+		respData := map[string]interface{}{
+			"response": []interface{}{},
+		}
+		if isMenuRequest {
+			respData = map[string]interface{}{
+				"item_loop": []interface{}{},
+			}
+		}
+
 		return CometdRequest{
 			Channel:    "/slim/request",
 			Successful: true,
 			Id:         req.Id,
 			ClientId:   respClid,
-			Data: map[string]interface{}{
-				"response": []interface{}{},
-			},
+			Data:       respData,
 		}
 
 	default:
