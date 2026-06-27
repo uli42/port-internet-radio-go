@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"regexp"
 	"strings"
@@ -421,6 +422,11 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 	}
 	port := uint16(listener.Addr().(*net.TCPAddr).Port)
 	fmt.Printf("[PCMTest] listening on port %d\n", port)
+
+	// Set max volume before streaming
+	if err := sendAudg(conn); err != nil {
+		fmt.Printf("[PCMTest] sendAudg error: %v\n", err)
+	}
 
 	// PCM: 16-bit signed LE stereo 44100 Hz
 	// pcmSampleSize = '1' (2 bytes per sample = 16-bit)
@@ -899,11 +905,41 @@ func handleArtwork(w http.ResponseWriter, r *http.Request) {
 	w.Write(placeholderPNG)
 }
 
+// handleDirectPCM generates PCM and feeds it directly into jive_alsa's
+// shared memory FIFO, bypassing SqueezePlay entirely.
+func handleDirectPCM(w http.ResponseWriter, r *http.Request) {
+	// Kill SqueezePlay (jive binary) + jive_alsa so they don't interfere
+	exec.Command("pkill", "-9", "jive").Run()
+	exec.Command("pkill", "-9", "jive_alsa").Run()
+	time.Sleep(500 * time.Millisecond)
+
+	// Also destroy existing shared memory segment
+	exec.Command("ipcrm", "-M", "56833").Run()
+
+	path := "/home/uli/work/slim_slim_server/squeezeplay/src/squeezeplay/pcm_feed"
+	cmd := exec.Command(path)
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("[DirectPCM] pcm_feed start error: %v\n", err)
+		http.Error(w, fmt.Sprintf("pcm_feed error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	go func() {
+		if err := cmd.Wait(); err != nil {
+			fmt.Printf("[DirectPCM] pcm_feed exited: %v\n", err)
+		} else {
+			fmt.Printf("[DirectPCM] pcm_feed done\n")
+		}
+	}()
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "direct PCM test started (10s 440Hz sine)\n")
+}
+
 // startHTTPServer starts the HTTP CometD server (for JSON-RPC and CometD
 func startHTTPServer(m *ServerMetadata) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/stream/play", handleStreamStart)
 	mux.HandleFunc("/stream/pcmtest", handlePCMTest)
+	mux.HandleFunc("/stream/direct", handleDirectPCM)
 	mux.HandleFunc("/cometd", func(w http.ResponseWriter, r *http.Request) {
 		handleCometd(w, r, m)
 	})
