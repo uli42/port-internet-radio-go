@@ -1,0 +1,1480 @@
+[0;33m20260627 12:13:35.890 INFO   squeezeplay - JiveMain.lua:266 SqueezePlay version 9.0.0 r[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/jive/global_strings.txt[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=SETTINGS[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Settings[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=INTERNET_RADIO[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Radio[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=MY_MUSIC[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=My Music[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Now Playing[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=GLOBAL_HELP[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Help[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=GLOBAL_SUPPORT[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=More Help[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=REMOTE_SETTINGS[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Controller Settings[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=SCREEN_SETTINGS[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Screen[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=HOME[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Home[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=ADVANCED_SETTINGS[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Advanced[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=AUDIO_SETTINGS[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Audio Settings[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=BETA_FEATURES[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Beta Features[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=BRIGHTNESS_SETTINGS[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Brightness[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=NETWORK_NETWORKING[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Networking[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=FACTORY_TEST[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Factory Test[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=DEBUG_LOG[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Logging[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:170 token=EXTRAS[0m
+[0;34m20260627 12:13:35.938 DEBUG  squeezeplay - locale.lua:196 translation=Extras[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=GAMES[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Games[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=INSERT[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Insert[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=DELETE[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Delete[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=ALLOWEDCHARS_NOCAPS[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation= abcdefghijklmnopqrstuvwxyz!@#$%^&*()_+{}|:\"'<>?-=,./~`[];0123456789[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=ALLOWEDCHARS_CAPS[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation= ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"'<>?-=,./~`[];0123456789[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=ALLOWEDCHARS_WITHCAPS[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation= abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+{}|:\"'<>?-=,./~`[];0123456789[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=ALLOWEDCHARS_EMAIL[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation= abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&'*+-/=?^_`{|}~0123456789@.[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=RETURN_TO_SETUP[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Return to Setup[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_RESET[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Reset to Defaults[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=KEYBOARD_DONE[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=done[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_1[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=January[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_2[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=February[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_3[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=March[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_4[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=April[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_5[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=May[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_6[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=June[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_7[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=July[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_8[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=August[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_9[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=September[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_10[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=October[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_11[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=November[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTH_12[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=December[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_1[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Jan[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_2[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Feb[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_3[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Mar[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_4[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Apr[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_5[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=May[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_6[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Jun[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_7[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Jul[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_8[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Aug[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_9[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Sep[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_10[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Oct[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_11[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:196 translation=Nov[0m
+[0;34m20260627 12:13:35.939 DEBUG  squeezeplay - locale.lua:170 token=MONTHSHORT_12[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Dec[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAY_1[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Sunday[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAY_2[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Monday[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAY_3[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Tuesday[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAY_4[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Wednesday[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAY_5[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Thursday[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAY_6[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Friday[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAY_7[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Saturday[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAYSHORT_1[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Sun[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAYSHORT_2[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Mon[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAYSHORT_3[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Tue[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAYSHORT_4[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Wed[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAYSHORT_5[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Thu[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAYSHORT_6[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Fri[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:170 token=DAYSHORT_7[0m
+[0;34m20260627 12:13:35.940 DEBUG  squeezeplay - locale.lua:196 translation=Sat[0m
+[0;34m20260627 12:13:35.944 DEBUG  squeezeplay - JiveMain.lua:511 reload()[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupSoundEffects/strings.txt[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupSoundEffects/strings.txt[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:170 token=SOUND_EFFECTS[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:196 translation=Sound Effects[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:170 token=SOUND_SCROLL[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:196 translation=Scroll[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:170 token=SOUND_NAVIGATION[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:196 translation=Navigation[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:170 token=SOUND_PLAYBACK[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:196 translation=Playback[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:170 token=SOUND_VOLUME[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:196 translation=Volume[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:170 token=SOUND_CHARGING[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:196 translation=Charging[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:170 token=SOUND_NONE[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:196 translation=None[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:170 token=SOUND_EFFECTS_VOLUME[0m
+[0;34m20260627 12:13:35.945 DEBUG  squeezeplay - locale.lua:196 translation=Effects Volume[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_VOLUME_HELP[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Use the wheel to adjust the volume of the sound effects.[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_CUSTOMIZE[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Customize Sounds[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_DEFAULT[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Default[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_BUMP[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Menu Bump[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_CLICK[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Click[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_JUMP[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Jump[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_WINDOWSHOW[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Show New Window[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_WINDOWHIDE[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Hide Window[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_SELECT[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Menu Select Item[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_DOCKING[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Docking[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_STARTUP[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Startup[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_SHUTDOWN[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Shutdown[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_CUSTOM_HELP[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Select the action that you would like to customize.[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:170 token=SOUND_CUSTOMSOUND_HELP[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:196 translation=Select the sound you would like to use for this action.[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/DesktopJive/strings.txt[0m
+[0;34m20260627 12:13:35.946 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/DesktopJive/strings.txt[0m
+[0;34m20260627 12:13:35.953 DEBUG  squeezeplay - JiveMain.lua:640 setDefaultSkin(WQVGAsmallSkin)[0m
+[0;34m20260627 12:13:35.981 DEBUG  audio.decode - decode_thread_execute:389 decode_thread_execute[0m
+[0;34m20260627 12:13:35.981 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Shortcuts/strings.txt[0m
+[0;34m20260627 12:13:35.981 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Shortcuts/strings.txt[0m
+[0;34m20260627 12:13:35.981 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_TITLE[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Shortcuts[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_RESTORE_DEFAULTS[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Restore Defaults[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_RESTORE_DEFAULTS_HELP[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Select "Continue" to restore all custom shortcuts to their default value[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_CANCEL[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Cancel[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_CONTINUE[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Continue[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_MODIFIED[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=(custom)[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_DEFAULT[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=(default)[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_TITLE_TITLE_LEFT_PRESS[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Left Button Touch[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_TITLE_TITLE_LEFT_HOLD[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Left Button Hold[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_TITLE_RIGHT_PRESS[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Right Button Touch[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_TITLE_RIGHT_HOLD[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Right Button Hold[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_HOME_TITLE_LEFT_PRESS[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Home Left Button Touch[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_HOME_TITLE_LEFT_HOLD[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Home Left Button Hold[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_GESTURE_L_R[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:196 translation=Right Swipe[0m
+[0;34m20260627 12:13:35.982 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_GESTURE_R_L[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Left Swipe[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_IR_HOLD[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=IR Hold %s[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_IR_PRESS[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=IR Press %s[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_KEY_HOLD[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Key Hold %s[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_KEY_PRESS[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Key Press %s[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_KEY_PRESET_PRESS[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Preset Key Press %s[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_INPUT_KEY_PRESET_HOLD[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Preset Key Hold %s[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_BACK[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Back[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_TEXT_MODE[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Text Mode[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_GO_HOME[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Go Home[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_GO_NOW_PLAYING[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Now Playing[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_GO_PLAYLIST[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Current Playlist[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_DISABLED[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Disabled[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_GO_FAVORITES[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Favorites[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_POWER[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Power[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_SETTINGS[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Settings[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_MUTE[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Mute[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_PAUSE[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Pause[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_GO_ALARMS[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Alarms[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_GO_BRIGHTNESS[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Brightness[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_STOP[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Stop[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_SLEEP[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Sleep[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_MORE[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=More[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_CREATE_MIX[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Custom Mix[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_ADD_END[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Add to End[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_PLAY_PRESET[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Play preset %s[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_SET_PRESET[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Set preset %s[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=SHORTCUTS_OUTPUT_SEARCH[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Search[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/AboutJive/strings.txt[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/AboutJive/strings.txt[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=ABOUT_JIVE[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=About[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:170 token=ABOUT_COPYRIGHT[0m
+[0;34m20260627 12:13:35.983 DEBUG  squeezeplay - locale.lua:196 translation=Copyright 2007-2011, Logitech.[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=ABOUT_MAC_ADDRESS[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=MAC Address: %s[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=ABOUT_CREDITS[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Credits:[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=ABOUT_VERSION[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Version:[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=UPTIME[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Uptime:[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=UPTIME_DAYS[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=%s days[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=UPTIME_HOURS[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=%s hours[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=UPTIME_MINUTES[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=%s minutes[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/AlarmSnooze/strings.txt[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/AlarmSnooze/strings.txt[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=ALARM_SNOOZE_ALARM[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Alarm[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=ALARM_SNOOZE_SNOOZE[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Snooze[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=ALARM_SNOOZE_DISMISS[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Dismiss[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=ALARM_SNOOZE_TURN_OFF_ALARM[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Turn Off Alarm[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/BlankScreen/strings.txt[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/BlankScreen/strings.txt[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_BLANKSCREEN[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Screen off[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Bounce/strings.txt[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Bounce/strings.txt[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_BOUNCE[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Bounce[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/ChooseMusicSource/strings.txt[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/ChooseMusicSource/strings.txt[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SLIMSERVER_SERVERS[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Libraries[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=CHOOOSE_DIFFERENT_NETWORK[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Choose Different Network[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SWITCH_SERVER_TITLE[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Switch Library[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SWITCH_SERVER_TEXT[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=You have made a selection that will connect to a different library, which will stop playback.[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SWITCH_PASSWORD_WRONG[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Username/Password Invalid[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SWITCH_PASSWORD_WRONG_BODY[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=The username or password you entered is not valid.[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SWITCH_BUTTON[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Switch to library: %s[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SWITCH_CANCEL[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Cancel[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=CHOOSE_RETRY[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Retry current library: %s[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=SLIMSERVER_ADD_SERVER[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Remote Library[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=REMOTE_LIBRARIES[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Remote Libraries[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=REMOVE_LIBRARY[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Remove Library[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=ADD_NEW_LIBRARY[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:196 translation=Add New Library[0m
+[0;34m20260627 12:13:35.984 DEBUG  squeezeplay - locale.lua:170 token=LIBRARY_ADDED[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Library Added[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=CONNECT_TO_THIS_LIBRARY[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Connect to this library[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SLIMSERVER_HELP[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Enter the IP address of the computer running Lyrion Music Server[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SLIMSERVER_CONNECTING_TO[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Connecting to[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Problem Connecting[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_GO_BACK[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Go back[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_TRY_AGAIN[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Try again[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=CHOOSE_OTHER_LIBRARY[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Switch Library[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_HELP_GENERIC[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=We couldn't connect to %s.  If this problem persists, please check Lyrion Music Server to make sure it is running properly, and that you have a reliable network connection.[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_HELP[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=We couldn't connect to %s.  Make sure your computer is turned on and connected to your local network, and that Lyrion Music Server is currently running.[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZECENTER_VERSION[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Update Software[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZECENTER_VERSION_HELP[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=%s needs to be updated to a newer version of the Lyrion Music Server.\n\nPlease visit lms-community.github.io/lms-server-repository to download the latest version.[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Clock/strings.txt[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Clock/strings.txt[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_STYLE_ANALOG[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Analog Clock[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_STYLE_DIGITAL[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Digital Clock[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_STYLE_DIGITAL_BLACK[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Digital Clock (Black)[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_STYLE_DIGITAL_TRANSPARENT[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Digital Clock (Transparent)[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_STYLE_DOTMATRIX[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=Dot Matrix Clock[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_01[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=January[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_02[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=February[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_03[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=March[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_04[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=April[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_05[0m
+[0;34m20260627 12:13:35.985 DEBUG  squeezeplay - locale.lua:196 translation=May[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_06[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=June[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_07[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=July[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_08[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=August[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_09[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=September[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_10[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=October[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_11[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=November[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_MONTH_12[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=December[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_DAY_0[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Sunday[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_DAY_1[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Monday[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_DAY_2[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Tuesday[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_DAY_3[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Wednesday[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_DAY_4[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Thursday[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_DAY_5[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Friday[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_CLOCK_DAY_6[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Saturday[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/CustomizeHomeMenu/strings.txt[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/CustomizeHomeMenu/strings.txt[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=APP_GUIDE[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=App Gallery[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=CUSTOMIZE_HOME[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Home Menu[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=CUSTOMIZE_RESTORE_DEFAULTS[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Restore Defaults[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=CUSTOMIZE_CANCEL[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Cancel[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=CUSTOMIZE_CONTINUE[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Continue[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=CUSTOMIZE_RESTORE_DEFAULTS_HELP[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Select "Continue" to remove all custom menu organization settings[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=RESTORE_HIDDEN_ITEMS[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Restore Hidden Menu items[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=REMOVE_FROM_HOME[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Hide from Home Menu[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=ADD_TO_HOME[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Add to Home Menu[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=RESTORE_HIDDEN_ITEMS_HELP[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Select an item to restore to the Home Menu. The following items have been hidden from view:[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=CUSTOMIZE_HOME_HELP[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Select help for more information[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=CUSTOMIZE_HOME_MORE_HELP[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=The home menu of your Squeezebox as well as several submenus can be customized, both in what items appear on the menu as well as what order the items take. Pressing the + button on a selected menu item raises a context menu that presents you with several options for customization of that item.[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=CUSTOMIZE_HOME_MORE_HELP_FAB4[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Touch-hold on a selected Settings Menu item and choose "Add to Home Menu" to add the item to the Home Menu. Items already in the Home Menu can be hidden from view via the same method.[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=NONE[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=None[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:170 token=NO_HIDDEN_ITEMS[0m
+[0;34m20260627 12:13:35.986 DEBUG  squeezeplay - locale.lua:196 translation=Currently no items are hidden from view on the Home Menu.[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=ITEM_CANNOT_BE_HIDDEN[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=This item cannot be hidden[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=MOVE_TO_TOP[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Move to top[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=MOVE_TO_BOTTOM[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Move to bottom[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=MOVE_UP_ONE[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Move up one[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=MOVE_DOWN_ONE[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Move down one[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/DebugSkin/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/DebugSkin/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/DebugTouch/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/DebugTouch/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Experiments/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Experiments/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/FullscreenSkin/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/FullscreenSkin/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=DESKTOP_SKIN[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Desktop Skin[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/HttpAuth/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/HttpAuth/strings.txt[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Lyrion Music Server Password Protection[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH_USERNAME[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Username[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH_PASSWORD[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Password[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH_HELP[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Help[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH_USERNAME_HELP[0m
+[0;34m20260627 12:13:35.987 DEBUG  squeezeplay - locale.lua:196 translation=Enter the Username configured for password protection on your Lyrion Music Server[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH_PASSWORD_HELP[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Enter the Password configured for password protection on your Lyrion Music Server[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH_CONNECTING_TO[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Connecting to[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH_PASSWORD_WRONG[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Username/Password Invalid[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH_PASSWORD_WRONG_BODY[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=The username or password you entered is not valid.[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=HTTP_AUTH_TRY_AGAIN[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Try again[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/ImageViewer/strings.txt[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/ImageViewer/strings.txt[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Image Viewer[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ERROR[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Error[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_EMPTY_LIST[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Nothing to display, the image list is empty[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_LIST_NOT_READY[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Several attempts at reading / creating the image list failed.  Please check the Image Viewer settings.[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_LIST_NOT_READY_SERVER[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Several attempts at reading / creating the image list failed.  Please check the network connection.[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SETTINGS[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Image Viewer Settings[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SOURCE[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Sources[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SOURCE_SETTINGS[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Source specific settings[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SOURCE_CARD[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Memory card[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SOURCE_USB[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=USB disk[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SOURCE_LOCAL_STORAGE[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Local storage media[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SOURCE_SC[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Lyrion Music Server[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SOURCE_HTTP[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=URL list[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SOURCE_FLICKR[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Flickr[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_DELAY[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Delay[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_DELAY_5_SEC[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=5 sec[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_DELAY_10_SEC[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=10 sec[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_DELAY_20_SEC[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=20 sec[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_DELAY_30_SEC[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=30 sec[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_DELAY_1_MIN[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=1 min[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ORDERING[0m
+[0;34m20260627 12:13:35.988 DEBUG  squeezeplay - locale.lua:196 translation=Ordering[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ORDERING_SEQUENTIAL[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=sequential[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ORDERING_RANDOM[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=random[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Transitions[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION_RANDOM[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Random transitions[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION_FADE[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Fade images[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION_INSIDE_OUT[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Fade inside-out[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION_TOP_DOWN[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Fade top-down[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION_BOTTOM_UP[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Fade bottom-up[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION_LEFT_RIGHT[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Fade left-right[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION_RIGHT_LEFT[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Fade right-left[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION_PUSH_RIGHT[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=push to right[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TRANSITION_PUSH_LEFT[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=push to left[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ROTATION[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Image rotation[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ROTATION_YES[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Rotate images[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ROTATION_NO[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=No rotation[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ZOOM[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Image zoom[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ZOOM_PICTURE[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Show complete image[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_ZOOM_SCREEN[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Fill complete screen[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TEXTINFO[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Additional info about picture[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TEXTINFO_YES[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Show additional info about picture[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_TEXTINFO_NO[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Hide additional info about picture[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_CURRENT_FOLDER[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Current folder:[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_USE_FOLDER[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Use folder as ImageViewer source[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_CARD_PATH_HELP[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Defines the search path for images.[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_CARD_ERROR[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=No images found. Please make sure that images are located in the correct path and in a supported format.[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_CARD_NOT_DIRECTORY[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=The defined search path is not a directory. Please provide a valid directory path name.[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_HTTP_PATH[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Defines the location of the image list[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_HTTP_PATH_HELP[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Defines the location of the image list[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_HTTP_ERROR[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Could not retrieve URL list. Please check whether the defined URL is correct.[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_HTTP_ERROR_IMAGE[0m
+[0;34m20260627 12:13:35.989 DEBUG  squeezeplay - locale.lua:196 translation=Could not retrieve image file. Please check the player's network connectivity.[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_LOADING_PHOTO[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Flickr loading photo...[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_ERROR[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Flickr error[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_DISPLAY[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Display[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_DISPLAY_OWN[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=My own pictures[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_DISPLAY_FAVORITES[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=My favorites[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_DISPLAY_CONTACTS[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=My contacts' pictures[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_DISPLAY_INTERESTING[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Interesting pictures[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_DISPLAY_RECENT[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Recently added pictures[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_DISPLAY_TAGGED[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Tagged images[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_FLICKR_ID[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Flickr User[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_FLICKR_ID_HELP[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Please enter your Flickr Username or your Email address[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_USERID_ERROR[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=The entered flickr id could not be resolved to a flicker user account! Please correct your entry.\n\nPress any key to continue.[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_INVALID_DISPLAY_OPTION[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Your flickr id is not set yet. Please set a valid flickr id, or choose another display option.\n\nPress any key to continue.[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_TAGS[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Tag Keywords[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_FLICKR_QUERY_TAGS[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Please enter the keyword(s) to search for in the tag information. You can separated tags with a comma.[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_LOADING[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Loading...[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_START_SLIDESHOW[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Start Slideshow[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_INVALID_IMAGE[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Invalid image object found[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SAVE_WALLPAPER[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Use picture as wallpaper[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_WALLPAPER_SET[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Wallpaper saved as\n%s[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_SAVED_SLIDE[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Saved Slide[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_BROWSE_MEDIA[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Browse Media[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_BROWSE_IMAGES[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Browse for Images[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:170 token=IMAGE_VIEWER_INVALID_FOLDER[0m
+[0;34m20260627 12:13:35.990 DEBUG  squeezeplay - locale.lua:196 translation=Cannot open folder:[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/InfoBrowser/strings.txt[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/InfoBrowser/strings.txt[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=INFOBROWSER[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Information Browser[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=INFOBROWSER_NORESPONSE[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=No information feeds found.  Please check the Information Browser plugin is enabled on your server.[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=INFOBROWSER_NOINFO_SN[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=No information feeds found.  Please login to your mysqueezebox.com account and add information feeds.[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=INFOBROWSER_NOINFO_SC[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=No information feeds found.  Please use the Lyrion Music Server web interface to add information feeds under Extras/Info Browser.[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/JogglerSkin/strings.txt[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/JogglerSkin/strings.txt[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=JOGGLER_SKIN[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Joggler Skin[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=JOGGLER_SKIN_1024_600[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Touch Skin (1024x600)[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=JOGGLER_SKIN_1280_800[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Touch Skin (1280x800)[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=JOGGLER_SKIN_1366_768[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Touch Skin (1366x768)[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=JOGGLER_SKIN_CUSTOM[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Touch Skin[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_BUTTONS[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Buttons for "Large Artwork and Text" view[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=WQVGA_SMALL_SKIN[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=WQVGA Small Print Skin[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=WQVGA_SMALL_SKIN_FAB4[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Small Text Skin[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=ENTER_SMALL[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=done[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=ENTER[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Done[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=SPACEBAR_SMALL[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=space[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=HELP[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Help[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=MORE_HELP[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=More[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_BUTTON_REW[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Previous Track[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_BUTTON_PLAY[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Play/Pause[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_BUTTON_FWD[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Next Track[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_BUTTON_REPEATMODE[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Repeat[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_BUTTON_SHUFFLEMODE[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Shuffle[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_BUTTON_VOLDOWN[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Softer[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_BUTTON_VOLSLIDER[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Volume[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_BUTTON_VOLUP[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Louder[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=LARGE_ART_AND_TEXT[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Large Artwork and Text[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=ART_AND_TEXT[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Artwork and Text[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=TEXT_ONLY[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Text only[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=ART_ONLY[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:196 translation=Artwork only[0m
+[0;34m20260627 12:13:35.991 DEBUG  squeezeplay - locale.lua:170 token=SPECTRUM_ANALYZER[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Spectrum Analyzer[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:170 token=ANALOG_VU_METER[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Analog VU Meter[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - JiveMain.lua:531 registerSkin(Joggler Skin,JogglerSkin, )[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - JiveMain.lua:531 registerSkin(Touch Skin (1024x600),JogglerSkin, JogglerSkin_1024x600)[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - JiveMain.lua:531 registerSkin(Touch Skin (1280x800),JogglerSkin, JogglerSkin_1280x800)[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - JiveMain.lua:531 registerSkin(Touch Skin (1366x768),JogglerSkin, JogglerSkin_1366x768)[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/LogSettings/strings.txt[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/LogSettings/strings.txt[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/MacroPlay/strings.txt[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/MacroPlay/strings.txt[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:170 token=MACRO_PLAY[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Test macros[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:170 token=MACRO_AUTOPLAY[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Automatic tests[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:170 token=MACRO_AUTOPLAY_HELP[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Start automatic tests.[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:170 token=MACRO_AUTOSTART[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Automatic tests[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:170 token=MACRO_AUTOSTART_HELP[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Starting in %s seconds.[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:170 token=MACRO_AUTOSTART_COMPLETE[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Tests complete.[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:170 token=MACRO_START[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Start[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:170 token=MACRO_CANCEL[0m
+[0;34m20260627 12:13:35.992 DEBUG  squeezeplay - locale.lua:196 translation=Cancel[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/NowPlaying/strings.txt[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/NowPlaying/strings.txt[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_NOWPLAYING[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Now Playing[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_STOPPED[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Stopped[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_PAUSED[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Paused[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_OFF[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Off[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_NOWPLAYING_OF[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=%s of %s[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_ARTWORK_SIZE[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Now Playing Artwork Size[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_ARTWORK_SMALL[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Small[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_ARTWORK_MEDIUM[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Medium[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_ARTWORK_LARGE[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Large[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SCROLLMODE[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Scroll Mode[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SCROLLMODE_DEFAULT[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Standard scrolling[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SCROLLMODE_SCROLLONCE[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Scroll once and stop[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SCROLLMODE_NOSCROLL[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Do not scroll[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_VIEWS[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=Now Playing Views[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_VIEWS_HELP[0m
+[0;34m20260627 12:13:35.993 DEBUG  squeezeplay - locale.lua:196 translation=The Now Playing screen has a number of different window configurations or "views" that can be toggled through. Select the views you'd like for this player here.[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_CLICK_MODE[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Click Mode[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_CLICK_MODE_HELP[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Number of clicks to rotate views[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_CLICK_MODE_SINGLE[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Single Click[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_CLICK_MODE_DOUBLE[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Double Click[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_CLICK_INTERVAL[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Double Click Time[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_CLICK_INTERVAL_DEFAULT[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=500 ms[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_CLICK_INTERVAL_1000MS[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=1 s[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=NOW_PLAYING_CLICK_INTERVAL_2000MS[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=2 s[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Playback/strings.txt[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Playback/strings.txt[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=AUDIO_PLAYBACK[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Audio Playback[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=ENABLE_AUDIO[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Enable Playback (BETA)[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=DEBUG_AUDIO[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Debug Playback[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=FORMAT[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Format:[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=DECODE_BUFFER[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Decode buffer:[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=OUTPUT_BUFFER[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Output buffer:[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=ELAPSED_SECS[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Elapsed Secs:[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=NUM_TRACKS[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Num Tracks:[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=DECODE_STATE[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Decode State:[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/QVGA240squareSkin/strings.txt[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/QVGA240squareSkin/strings.txt[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=QVGALANDSCAPE_SKIN[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=QVGA Landscape Skin[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=QVGA240SQUARE_SKIN[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=QVGA 240x240 Square Skin[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=SMALL_ART[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Small Artwork[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:170 token=LARGE_ART[0m
+[0;34m20260627 12:13:35.994 DEBUG  squeezeplay - locale.lua:196 translation=Large Artwork[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - JiveMain.lua:531 registerSkin(QVGA 240x240 Square Skin,QVGA240squareSkin, )[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/QVGAbaseSkin/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/QVGAbaseSkin/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/QVGAlandscapeSkin/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/QVGAlandscapeSkin/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=QVGALANDSCAPE_SKIN[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=QVGA Landscape Skin[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SMALL_ART[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Small Artwork[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=LARGE_ART[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Large Artwork[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - JiveMain.lua:531 registerSkin(QVGA Landscape Skin,QVGAlandscapeSkin, )[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/QVGAportraitSkin/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/QVGAportraitSkin/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=QVGAPORTRAIT_SKIN[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=QVGA Portrait Skin[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SMALL_ART[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Small Artwork[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=LARGE_ART[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Large Artwork[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - JiveMain.lua:531 registerSkin(QVGA Portrait Skin,QVGAportraitSkin, )[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Quit/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Quit/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=QUIT[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Quit[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/ScreenSavers/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/ScreenSavers/strings.txt[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVERS[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Screensavers[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_WHEN_PLAYING[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=When playing[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_WHEN_OFF[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=When off[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_WHEN_STOPPED[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=When stopped[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_DELAY[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Delay[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SELECT_HELP[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Press the center button to choose a screensaver, play to preview.[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SELECT_PLAYING_HELP[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Press the center button to select a screensaver to be shown when this Squeezebox is playing. Press play to preview a screensaver.[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SELECT_STOPPED_HELP[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:196 translation=Press the center button to select a screensaver to be shown when this Squeezebox is not playing. Press play to preview a screensaver.[0m
+[0;34m20260627 12:13:35.995 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SELECT_OFF_HELP[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=Press the center button to select a screensaver to be shown when this Squeezebox is off. Press play to preview a screensaver.[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SELECT_PLAYING_HELP_FAB4[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=Touch to select a screensaver to be shown when this Squeezebox is playing. Touch and hold to preview a screensaver.[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SELECT_STOPPED_HELP_FAB4[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=Touch to select a screensaver to be shown when this Squeezebox is not playing. Touch and hold to preview a screensaver.[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_SELECT_OFF_HELP_FAB4[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=Touch to select a screensaver to be shown when this Squeezebox is off. Touch and hold to preview a screensaver.[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=DELAY_10_SEC[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=10 seconds[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=DELAY_20_SEC[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=20 seconds[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=DELAY_30_SEC[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=30 seconds[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=DELAY_1_MIN[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=1 minute[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=DELAY_2_MIN[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=2 minutes[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=DELAY_5_MIN[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=5 minutes[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=DELAY_10_MIN[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=10 minutes[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=DELAY_30_MIN[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=30 minutes[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=SCREENSAVER_NONE[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=None[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Screenshot/strings.txt[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Screenshot/strings.txt[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:170 token=SCREENSHOT_TAKEN[0m
+[0;34m20260627 12:13:35.996 DEBUG  squeezeplay - locale.lua:196 translation=Screenshot saved to\n%s[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/ScriptPlay/strings.txt[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/ScriptPlay/strings.txt[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SCRIPT_PLAY[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Test macros[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SCRIPT_AUTOPLAY[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Automatic tests[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SCRIPT_AUTOPLAY_HELP[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Start automatic tests.[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SCRIPT_AUTOSTART[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Automatic tests[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SCRIPT_AUTOSTART_HELP[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Starting in %s seconds.[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SCRIPT_AUTOSTART_COMPLETE[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Tests complete.[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SCRIPT_START[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Start[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SCRIPT_CANCEL[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Cancel[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SelectPlayer/strings.txt[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SelectPlayer/strings.txt[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SELECT_PLAYER[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Choose Player[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_SETUP[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Set Up Receiver[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_ACTIVATE[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Activate %s[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:170 token=SEARCHING[0m
+[0;34m20260627 12:13:35.997 DEBUG  squeezeplay - locale.lua:196 translation=Scanning for Players...[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SelectSkin/strings.txt[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SelectSkin/strings.txt[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=SELECT_SKIN[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Select Skin[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=FULLSCREEN_MODE[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Fullscreen[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=SELECT_SKIN_TOUCH_SKIN[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Touch Skin[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=SELECT_SKIN_REMOTE_SKIN[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Remote Skin[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=SELECT_SKIN_BOOT_SKIN[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Skin to start with[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=CONFIRM_SKIN[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Confirm Skin Change[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=REVERT_SKIN[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Revert to previous skin[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=KEEP_SKIN[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Keep this skin[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupAppletInstaller/strings.txt[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupAppletInstaller/strings.txt[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=APPLET_INSTALLER[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Applet Installer[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=APPLET_FETCHING[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Fetching Applet List[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=NONE_FOUND[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=No Applets Found[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=DOWNLOADING[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Downloading Applets[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=RESTART_APP[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Restart application to make use of new applets[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=RESTART_JIVE[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Restarting[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=INSTALL[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Install[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=REMOVE[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Remove[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=UPDATE[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Update[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=INSTALLED[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Installed[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=UPDATES[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Updates[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=REINSTALL[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Reinstall[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=REINSTALL_ALL[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Reinstall All[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=UPDATE_ALL[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Update All[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=APPLET_WARN[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Please note: installing 3rd Party apps includes an automatic restart to complete installation.[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=APPLET_RECONLY[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Recommended Applets Only[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=APPLET_AUTOUP[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Reinstall after Firmware Update[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupDateTime/strings.txt[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupDateTime/strings.txt[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_TITLE[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:196 translation=Date & Time[0m
+[0;34m20260627 12:13:36.001 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_TIMEFORMAT[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Time Format[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_TIMEFORMAT_12H[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=12 hours[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_TIMEFORMAT_24H[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=24 hours[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_SHORTDATEFORMAT[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Short Date Format[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_DATEFORMAT[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Date Format[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_WEEKSTART[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Week Start[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_MONDAY[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Monday[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_SUNDAY[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Sunday[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_LONGDATEFORMAT_DEFAULT[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=%a %d %b %Y[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=DATETIME_SHORTDATEFORMAT_DEFAULT[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=%m.%d.%Y[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupLanguage/strings.txt[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupLanguage/strings.txt[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=CHOOSE_LANGUAGE[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Choose Language[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=LANGUAGE[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Language[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=CHOOSE_LANGUAGE_HELP[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Use the wheel to choose your language. Press the center button to go on.[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=LOADING_LANGUAGE[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Loading English[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupNetTest/strings.txt[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupNetTest/strings.txt[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=SETUPNETTEST[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Network Test[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=SETUPNETTEST_NOSERVER[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Network tests are not supported by the server which this player is currently attached to.  Please ensure the Network Test plugin is enabled on your server.[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=SETUPNETTEST_TESTING[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Testing:[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=SETUPNETTEST_CURRENT[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Current[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=SETUPNETTEST_HISTORY[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Test History[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=SETUPNETTEST_TESTINGTO[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Testing to[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=SETUPNETTEST_INFO[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Right key, or Center button, for Help[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=SETUPNETTEST_HELPTITLE[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Network Test Help[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:170 token=SETUPNETTEST_HELP[0m
+[0;34m20260627 12:13:36.002 DEBUG  squeezeplay - locale.lua:196 translation=Select a data rate to test at and leave the test running for a period of time. To select the rate, use the scroll wheel, the up/down arrow keys on the remote control, or touch the title button.\n\nThe top graph shows the current network performance as a fraction of the test rate.\n\nThe lower graph shows the history of test results grouped into performance bands which are colour coded Red, Amber and Green.\n\nGood network performance is indicated by minimal dips in the top graph [0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupSqueezebox/strings.txt[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupSqueezebox/strings.txt[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_SETUP[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Set Up Receiver[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_NETWORK_CONNECTION[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Wireless Connection[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_CONNECT_HELP[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Choose how your Squeezebox should connect to your network.[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_WIRELESS[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Wireless[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_ETHERNET[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Ethernet[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_HELP[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Choose the Squeezebox Receiver you want to set up. If you don't see it here, press and hold the button on the front until it flashes.[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_FINDING_SOURCES[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Finding music sources[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_CONNECTING_TO[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Connecting to[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_SETUP_COMPLETE[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Your Squeezebox is now set up.[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Problem Connecting[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_TRY_AGAIN[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Try again[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_SKIP[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Skip this step[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_ETHERNET_PROBLEM_HELP[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=Couldn't connect your Squeezebox to your Ethernet network.[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_HELP[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=We couldn't connect to %s.  Make sure your computer is turned on and connected to your local network, and that Lyrion Music Server is currently running.[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_LOST_CONNECTION[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=(Lost connection).[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_LOST_SQUEEZEBOX[0m
+[0;34m20260627 12:13:36.003 DEBUG  squeezeplay - locale.lua:196 translation=(Lost Squeezebox).[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_DHCP_ERROR[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=(DHCP error).[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_LOST_NETWORK[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=(Lost network).[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_PROBLEM_CONNECTION_ERROR[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=(Connection error).[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_MUSIC_SOURCE[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Choose Music Source[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_MUSIC_SOURCE_HELP[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=The Squeezebox %s is connected to your network. Choose a music source.[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_IP_ADDRESS[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=IP Address[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_IP_ADDRESS_HELP[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Enter the IP address for this Squeezebox to use.[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_BRIDGED_NAME[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Squeezebox %s[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=SQUEEZEBOX_UPDATING_FIRMWARE_SQUEEZEBOX[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Updating Squeezebox firmware[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupWallpaper/strings.txt[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupWallpaper/strings.txt[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=WALLPAPER[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Wallpaper[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=WALLPAPER_HELP_PLAYER[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Choose the screen background to be shown for %s[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=WALLPAPER_HELP_NO_PLAYER[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Choose the default screen background to be shown[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=ALLEGRO[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Allegro[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=BLACK[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Black[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=ENCORE[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Encore[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:170 token=ENCORERED[0m
+[0;34m20260627 12:13:36.004 DEBUG  squeezeplay - locale.lua:196 translation=Encore Red[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=HARMONY[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Harmony[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=NOCTURNE[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Nocturne[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=QUARTET[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Quartet[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SONATA[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Sonata[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SYMPHONY[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Symphony[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=VIBRATO[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Vibrato[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupWelcome/strings.txt[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SetupWelcome/strings.txt[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SETUP_WELCOME[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Welcome[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=WELCOME[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Welcome[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=WELCOME_WALKTHROUGH[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Let's get started by getting you connected to your network and music.[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=WELCOME_HELP[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Press the right arrow key when you are ready to move on.[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=DONE[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=That's it![0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=DONE_CONTINUE[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Continue[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=DONE_HELP[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Now you can use SqueezePlay to access all your music. Press the right arrow key to continue.[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SlimBrowser/strings.txt[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SlimBrowser/strings.txt[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SN_SIGNUP[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=mysqueezebox.com Signup[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_PLAYLIST[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Current Playlist[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_ENTER_PASSWORD[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Re-enter password[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_GO_HOME[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Go Home[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_DIAGNOSTICS[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Diagnostics[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_PAUSED[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Paused[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_STOPPED[0m
+[0;34m20260627 12:13:36.005 DEBUG  squeezeplay - locale.lua:196 translation=Stopped[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_SEARCH_HELP[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Use the scroll wheel to change letters, then press the center button to select that letter. Press the center button again to start your search.[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_PROBLEM_CONNECTING[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Problem Connecting[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_TRY_AGAIN[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Try Again[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_CHOOSE_MUSIC_SOURCE[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Switch Library[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_CHOOSE_PLAYER[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Choose Player[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_PROBLEM_CONNECTING_HELP[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=There is a problem connecting to %s[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_NOTHING[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Nothing[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_OFF[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Off[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_VOLUME[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Volume[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_MUTED[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Muted[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_VOLUME_MUTED[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Volume (Muted)[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_ADD_NEXT_1[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Play Next[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_ADD_NEXT_2[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Add Next[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_PASSWORD_WRONG[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Username/Password Invalid[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_PASSWORD_WRONG_BODY[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=The username or password you entered is not valid.[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_SCANNER[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Song Position[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_CONNECTING_TO[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Connecting to[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_ALARM_PREVIEW[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Alarm Preview[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_DONE[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=Done[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_ALARM_SOUND_HELP[0m
+[0;34m20260627 12:13:36.006 DEBUG  squeezeplay - locale.lua:196 translation=In these menus, select an item for an alarm sound or press play to preview.[0m
+[0;34m20260627 12:13:36.007 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_ALARM_SOUND_HELP_FAB4[0m
+[0;34m20260627 12:13:36.007 DEBUG  squeezeplay - locale.lua:196 translation=In these menus, touch to select an alarm sound, touch-hold to preview.[0m
+[0;34m20260627 12:13:36.007 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_ALARM_SOUND_HELP_BABY[0m
+[0;34m20260627 12:13:36.007 DEBUG  squeezeplay - locale.lua:196 translation=In these menus, press the knob to select an alarm sound, press play to preview.[0m
+[0;34m20260627 12:13:36.007 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_ALARM_SOUND_HELP_JIVE[0m
+[0;34m20260627 12:13:36.007 DEBUG  squeezeplay - locale.lua:196 translation=In these menus, press the center button to select an alarm sound, press play to preview.[0m
+[0;34m20260627 12:13:36.011 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SlimDiscovery/strings.txt[0m
+[0;34m20260627 12:13:36.011 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SlimDiscovery/strings.txt[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SlimMenus/strings.txt[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/SlimMenus/strings.txt[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_MY_MUSIC[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=My Music[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_MY_APPS[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=My Apps[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_INTERNET_RADIO[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=Radio[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_OTHER_LIBRARY[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=Switch Library[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_ATTACH_CABLE_DETAILED[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=We can't detect a wired connection. Please check your Ethernet cable, and make sure your network is running and available.[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_NO_WIRELESS_DETAILED[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=We can't detect a wireless connection. Please check to make sure your network is running and available.[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_CONNECTION_ERROR[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=Connection Problem[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_CHOOSE_DIFFERENT_NETWORK[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=Choose Different Network[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_TRY_AGAIN[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=Try again[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=MENUS_CONTINUE_WITHOUT_NETWORK[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=Continue without network[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_UPDATING_FIRMWARE_SQUEEZEBOX[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=Updating Squeezebox firmware[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_PLAYER_UPDATE_REQUIRED[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=Player Update[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=SLIMBROWSER_USER_UPDATE_FIRMWARE_SQUEEZEBOX[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=Software Update ready for %s. To begin, press and hold the Brightness button on your original IR remote.[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=INSTALL_SC_TEXT[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=To enable "My Music" try the following:\n\n- Download the Lyrion Music Server software from www.mysqueezebox.com and make sure it is installed and running on a computer on the network.\n\n- Insert a SD card into the SD slot.\n\n- Connect a storage device to the USB port.[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=INSTALL_SC_TEXT_BABY[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=To enable "My Music", download the Lyrion Music Server software from www.mysqueezebox.com and make sure it is installed and running on a computer on the network.[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:170 token=INSTALL_SC_TEXT_JIVE[0m
+[0;34m20260627 12:13:36.012 DEBUG  squeezeplay - locale.lua:196 translation=To enable "My Music", download the Lyrion Music Server software from www.mysqueezebox.com and make sure it is installed and running on a computer on the network.[0m
+[0;34m20260627 12:13:36.014 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Test/strings.txt[0m
+[0;34m20260627 12:13:36.014 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Test/strings.txt[0m
+[0;34m20260627 12:13:36.014 DEBUG  squeezeplay - locale.lua:170 token=TEST[0m
+[0;34m20260627 12:13:36.014 DEBUG  squeezeplay - locale.lua:196 translation=Test[0m
+[0;34m20260627 12:13:36.014 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/TestTones/strings.txt[0m
+[0;34m20260627 12:13:36.014 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/TestTones/strings.txt[0m
+[0;34m20260627 12:13:36.014 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/UdapControl/strings.txt[0m
+[0;34m20260627 12:13:36.014 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/UdapControl/strings.txt[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/WQVGAlargeSkin/strings.txt[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/WQVGAlargeSkin/strings.txt[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=WQVGA_LARGE_SKIN[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=WQVGA Large Print Skin[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=WQVGA_LARGE_SKIN_FAB4[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Large Text Skin[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=ART_AND_TEXT[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Artwork and Text[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=TEXT_ONLY[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Text only[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=ART_ONLY[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Artwork only[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=SPECTRUM_ANALYZER[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Spectrum Analyzer[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=ANALOG_VU_METER[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Analog VU Meter[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - JiveMain.lua:531 registerSkin(WQVGA Large Print Skin,WQVGAlargeSkin, )[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/WQVGAsmallSkin/strings.txt[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/WQVGAsmallSkin/strings.txt[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=WQVGA_SMALL_SKIN[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=WQVGA Small Print Skin[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=WQVGA_SMALL_SKIN_FAB4[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Small Text Skin[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=ENTER_SMALL[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=done[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=ENTER[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Done[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=SPACEBAR_SMALL[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=space[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=HELP[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Help[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=MORE_HELP[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=More[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=ART_AND_TEXT[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Artwork and Text[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=TEXT_ONLY[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Text only[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=ART_ONLY[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Artwork only[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=SPECTRUM_ANALYZER[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Spectrum Analyzer[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:170 token=ANALOG_VU_METER[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:196 translation=Analog VU Meter[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - JiveMain.lua:531 registerSkin(WQVGA Small Print Skin,WQVGAsmallSkin, )[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:121 loading strings from /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Demo/strings.txt[0m
+[0;34m20260627 12:13:36.015 DEBUG  squeezeplay - locale.lua:133 parsing /home/uli/work/slim_slim_server/squeezeplay/build/linux/share/jive/applets/Demo/strings.txt[0m
+[0;34m20260627 12:13:36.024 DEBUG  squeezebox.player - Player.lua:297 Player:__init(c4:ef:bb:c6:c4:a5)[0m
+[0;34m20260627 12:13:36.024 DEBUG  audio.decode - Playback.lua:1134 setVolume: 40[0m
+[0;34m20260627 12:13:36.024 DEBUG  audio.decode - Playback.lua:1160 _setGain: 2048[0m
+[0;34m20260627 12:13:36.024 DEBUG  audio.decode - Playback.lua:1195 gainL, gainR: 2048 2048[0m
+[0;34m20260627 12:13:36.024 DEBUG  squeezebox.server - SlimServer.lua:482 SlimServer:__init(GoSlimServer) goslimserver-uuid-1234[0m
+[0;34m20260627 12:13:36.024 DEBUG  net.comet - Comet.lua:126 Comet: __init(GoSlimServer)[0m
+[0;34m20260627 12:13:36.024 DEBUG  net.comet - Comet.lua:384 Comet {GoSlimServer}: subscribe(/slim/serverstatus function: 0x55bdaa433610, reqid:1, nil, serverstatus,0,50,subscribe:60, priority:nil)[0m
+[0;34m20260627 12:13:36.024 DEBUG  squeezebox.player - LocalPlayer.lua:72 lastSqueezeCenter set: SlimServer {GoSlimServer}[0m
+[0;34m20260627 12:13:36.024 DEBUG  squeezebox.player - Player.lua:354 LocalPlayer {c4:ef:bb:c6:c4:a5} new for SlimServer {GoSlimServer}[0m
+[0;32m20260627 12:13:36.024 WARN   squeezebox.server - SlimServer.lua:713 wakeOnLan(): SKIPPING WOL, self.mac: nil, self:isSqueezeNetwork(): false[0m
+[0;33m20260627 12:13:36.024 INFO   squeezebox.player - LocalPlayer.lua:203 connectToServer(): connecting localPlayer to serverSlimServer {GoSlimServer} via internal call[0m
+[0;34m20260627 12:13:36.024 DEBUG  net.slimproto - SlimProto.lua:655 disconnect[0m
+[0;33m20260627 12:13:36.025 INFO   squeezeplay - JiveMain.lua:590 select skin: WQVGAsmallSkin[0m
+[0;34m20260627 12:13:36.042 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:641 notify_playerCurrent(): false[0m
+[0;34m20260627 12:13:36.048 DEBUG  squeezebox.player - Player.lua:297 Player:__init(c4:ef:bb:c6:c4:a5)[0m
+[0;34m20260627 12:13:36.048 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:1999 false[0m
+[0;34m20260627 12:13:36.048 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:641 notify_playerCurrent(): LocalPlayer {c4:ef:bb:c6:c4:a5}[0m
+[0;33m20260627 12:13:36.048 INFO   applet.SlimMenus - SlimMenusApplet.lua:1106 SlimMenusApplet:notify_playerCurrent(LocalPlayer {c4:ef:bb:c6:c4:a5})[0m
+[0;33m20260627 12:13:36.048 INFO   applet.SlimMenus - SlimMenusApplet.lua:1181 No server, Fetching initial server, SlimServer {GoSlimServer}[0m
+[0;33m20260627 12:13:36.048 INFO   applet.SlimMenus - SlimMenusApplet.lua:1190 player changed from:false to LocalPlayer {c4:ef:bb:c6:c4:a5} but server not yet connected[0m
+[0;34m20260627 12:13:36.048 DEBUG  squeezebox.server - SlimServer.lua:732 Server ip address is not known[0m
+[0;34m20260627 12:13:36.051 DEBUG  net.slimproto - SlimProto.lua:655 disconnect[0m
+[0;33m20260627 12:13:36.051 INFO   net.slimproto - SlimProto.lua:597 connect to 192.168.1.8 (192.168.1.8)[0m
+[0;34m20260627 12:13:36.051 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=HELO[0m
+[0;32m20260627 12:13:36.051 WARN   audio.decode - Playback.lua:144 Cannot find active network interface[0m
+[0;33m20260627 12:13:36.051 INFO   net.slimproto - SlimProto.lua:152 Send HELO: reconnect-bit=0 bytesReceived(H,L)=0,0[0m
+[0;34m20260627 12:13:36.079 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=setd #5[0m
+[0;34m20260627 12:13:36.079 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=SETD[0m
+[0;34m20260627 12:13:36.079 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:13:36.079 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=setd #5[0m
+[0;34m20260627 12:13:36.079 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:13:36.079 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=aude #6[0m
+[0;34m20260627 12:13:36.079 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:13:36.079 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=audg #26[0m
+[0;34m20260627 12:13:36.079 DEBUG  audio.decode - Playback.lua:1109 server sequence # out of sync. server: 0 local: 1[0m
+[0;34m20260627 12:13:36.079 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:13:36.080 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=setd #23[0m
+[0;34m20260627 12:13:36.080 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:13:36.096 DEBUG  squeezebox.server - SlimServer.lua:673 SlimServer {GoSlimServer}:free[0m
+[0;34m20260627 12:13:36.097 DEBUG  squeezebox.server - SlimServer.lua:482 SlimServer:__init(traube3) b7287904-28a7-4d2a-94e4-fe359d9c5007[0m
+[0;34m20260627 12:13:36.097 DEBUG  net.comet - Comet.lua:126 Comet: __init(traube3)[0m
+[0;34m20260627 12:13:36.097 DEBUG  net.comet - Comet.lua:384 Comet {traube3}: subscribe(/slim/serverstatus function: 0x55bdaa37ea50, reqid:1, nil, serverstatus,0,50,subscribe:60, priority:nil)[0m
+[0;34m20260627 12:13:36.097 DEBUG  squeezebox.server - SlimServer.lua:613 SlimServer {traube3}: address set to 192.168.1.8:9000 netstate=disconnected name: traube3[0m
+[0;34m20260627 12:13:36.098 DEBUG  net.comet - Comet.lua:175 Comet {traube3}: setEndpoint state=UNCONNECTED, 192.168.1.8, 9000, /cometd[0m
+[0;34m20260627 12:13:36.098 DEBUG  squeezebox.server - SlimServer.lua:736 SlimServer {traube3}:connect[0m
+[0;34m20260627 12:13:36.098 DEBUG  net.comet - Comet.lua:199 Comet {traube3}: connect state=UNCONNECTED[0m
+[0;34m20260627 12:13:36.098 DEBUG  net.comet - Comet.lua:585 Comet {traube3}: _handshake(), calling: http://192.168.1.8:9000/cometd[0m
+[0;34m20260627 12:13:36.098 DEBUG  net.comet - Comet.lua:597 Will re-subscribe to /slim/serverstatus id=1[0m
+[0;34m20260627 12:13:36.098 DEBUG  net.comet - Comet.lua:564 Comet {traube3}: state is CONNECTING[0m
+[0;34m20260627 12:13:36.099 DEBUG  net.comet - Comet.lua:663 Comet {traube3}: _handshake, advice updated from server[0m
+[0;34m20260627 12:13:36.099 DEBUG  net.comet - Comet.lua:670 Comet {traube3}: _handshake OK, clientId: 4613994b[0m
+[0;34m20260627 12:13:36.099 DEBUG  net.comet - Comet.lua:691 Comet {traube3}: _connect()[0m
+[0;34m20260627 12:13:36.100 DEBUG  net.comet - Comet.lua:878 Comet {traube3}: _response, advice updated from server[0m
+[0;34m20260627 12:13:36.100 DEBUG  net.comet - Comet.lua:888 Comet {traube3}: _response, /meta/connect id= OK[0m
+[0;34m20260627 12:13:36.100 DEBUG  net.comet - Comet.lua:361 Sending pending request(s):[0m
+{ --[[table: 0x55bdaa1b4840]]
+  { --[[table: 0x55bdaa111350]]
+    id = 1,
+    data = { --[[table: 0x55bdaa127390]]
+      request = { --[[table: 0x55bdaa091bf0]]
+        "",
+        { --[[table: 0x55bdaa37e8e0]]
+          "serverstatus",
+          0,
+          50,
+          "subscribe:60",
+        },
+      },
+      response = "/4613994b/slim/serverstatus",
+    },
+    channel = "/slim/subscribe",
+  },
+}
+[0;34m20260627 12:13:36.100 DEBUG  net.comet - Comet.lua:372 caching chttp ip address: 192.168.1.8 for: http://192.168.1.8:9000/cometd[0m
+[0;34m20260627 12:13:36.100 DEBUG  net.comet - Comet.lua:564 Comet {traube3}: state is CONNECTED[0m
+[0;33m20260627 12:13:36.100 INFO   squeezebox.server - SlimServer.lua:799 connected traube3[0m
+[0;34m20260627 12:13:36.100 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:163 ***serverConnected	SlimServer {traube3}[0m
+[0;32m20260627 12:13:36.100 WARN   squeezeplay - JiveMain.lua:612 no value for skinParam THUMB_SIZE_MENU found[0m
+[0;34m20260627 12:13:36.100 DEBUG  net.comet - Comet.lua:469 Comet {traube3}: request(nil, reqid:2, nil, artworkspec,add,40x40_m,squeezeplayskin, priority:nil)[0m
+[0;34m20260627 12:13:36.100 DEBUG  net.comet - Comet.lua:361 Sending pending request(s):[0m
+{ --[[table: 0x55bdaa1bade0]]
+  { --[[table: 0x55bdaa1890b0]]
+    data = { --[[table: 0x55bdaa188170]]
+      request = { --[[table: 0x55bdaa16c7a0]]
+        "",
+        { --[[table: 0x55bdaa272850]]
+          "artworkspec",
+          "add",
+          "40x40_m",
+          "squeezeplayskin",
+        },
+      },
+      response = "/4613994b/slim/request",
+    },
+    channel = "/slim/request",
+  },
+}
+[0;34m20260627 12:13:36.100 DEBUG  net.comet - Comet.lua:372 caching chttp ip address: 192.168.1.8 for: http://192.168.1.8:9000/cometd[0m
+[0;34m20260627 12:13:36.101 DEBUG  net.comet - Comet.lua:888 Comet {traube3}: _response, /meta/subscribe id= OK[0m
+sh: 1: arp: not found
+[0;33m20260627 12:13:36.102 INFO   squeezebox.server - SlimServer.lua:811 self.mac being set to---->nil[0m
+[0;34m20260627 12:13:36.135 DEBUG  net.comet - Comet.lua:888 Comet {traube3}: _response, /slim/subscribe id=1 OK[0m
+[0;34m20260627 12:13:36.141 DEBUG  net.comet - Comet.lua:888 Comet {traube3}: _response, /4613994b/slim/serverstatus id=1 OK[0m
+[0;34m20260627 12:13:36.141 DEBUG  net.comet - Comet.lua:951 Comet {traube3}: _response, notifiying callbacks for /slim/serverstatus[0m
+[0;34m20260627 12:13:36.141 DEBUG  net.comet - Comet.lua:954   callback to: function: 0x55bdaa37ea50[0m
+[0;34m20260627 12:13:36.141 DEBUG  squeezebox.server - SlimServer.lua:177 SlimServer {traube3}:_serverstatusSink()[0m
+[0;34m20260627 12:13:36.141 DEBUG  squeezebox.player - Player.lua:297 Player:__init(c4:ef:bb:c6:c4:a5)[0m
+[0;34m20260627 12:13:36.141 DEBUG  audio.decode - Playback.lua:1109 server sequence # out of sync. server: 0 local: 1[0m
+[0;34m20260627 12:13:36.141 DEBUG  squeezebox.player - Player.lua:385 LocalPlayer {c4:ef:bb:c6:c4:a5}@SlimServer {traube3}:updatePlayerInfo connected=1[0m
+[0;34m20260627 12:13:36.141 DEBUG  squeezebox.player - Player.lua:624 LocalPlayer {c4:ef:bb:c6:c4:a5} delete for SlimServer {GoSlimServer}[0m
+[0;34m20260627 12:13:36.141 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:630 notify_playerDelete():LocalPlayer {c4:ef:bb:c6:c4:a5}[0m
+[0;34m20260627 12:13:36.141 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:1999 false[0m
+[0;34m20260627 12:13:36.141 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1258 notify_playerDelete(LocalPlayer {c4:ef:bb:c6:c4:a5})[0m
+[0;34m20260627 12:13:36.141 DEBUG  applet.SlimBrowser - SlimBrowserApplet.lua:3725 SlimBrowserApplet:notify_playerDelete(LocalPlayer {c4:ef:bb:c6:c4:a5})[0m
+[0;34m20260627 12:13:36.141 DEBUG  squeezebox.player - Player.lua:448 LocalPlayer {c4:ef:bb:c6:c4:a5} new for SlimServer {traube3}[0m
+[0;34m20260627 12:13:36.141 DEBUG  squeezebox.server - SlimServer.lua:673 SlimServer {GoSlimServer}:free[0m
+[0;34m20260627 12:13:36.141 DEBUG  squeezebox.player - Player.lua:483 power value ignored(out of sync), revert to old: nil[0m
+[0;34m20260627 12:13:36.141 DEBUG  squeezebox.player - Player.lua:487 oldInfo.connected says: false self.info.connected says: true[0m
+[0;34m20260627 12:13:36.141 DEBUG  squeezebox.server - SlimServer.lua:136 setting lastServerSwitchT for server: SlimServer {traube3}[0m
+[0;34m20260627 12:13:36.141 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:1999 false[0m
+[0;34m20260627 12:13:36.141 DEBUG  applet.NowPlaying - NowPlayingApplet.lua:641 notify_playerCurrent(): LocalPlayer {c4:ef:bb:c6:c4:a5}[0m
+[0;33m20260627 12:13:36.144 INFO   applet.SlimMenus - SlimMenusApplet.lua:1106 SlimMenusApplet:notify_playerCurrent(LocalPlayer {c4:ef:bb:c6:c4:a5})[0m
+[0;34m20260627 12:13:36.144 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1150 lastSC: SlimServer {GoSlimServer}[0m
+[0;34m20260627 12:13:36.144 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1151 _server: SlimServer {GoSlimServer}[0m
+[0;34m20260627 12:13:36.144 DEBUG  applet.SlimMenus - SlimMenusApplet.lua:1154 server: SlimServer {traube3}[0m
+[0;33m20260627 12:13:38.076 INFO   squeezeplay - JiveMain.lua:446 Calling postOnScreenInits callback[0m
+[0;33m20260627 12:13:38.076 INFO   squeezeplay - JiveMain.lua:446 Calling postOnScreenInits callback[0m
+[0;34m20260627 12:13:39.003 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:13:39.003 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:13:44.003 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:13:44.003 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:13:49.002 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:13:49.002 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:13:54.001 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:13:54.001 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:13:59.000 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:13:59.000 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:03.002 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:14:03.002 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:08.002 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:14:08.002 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:09.911 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:14:09.911 DEBUG  audio.decode - Playback.lua:858 strm q[0m
+[0;34m20260627 12:14:09.911 DEBUG  audio.decode - Playback.lua:1265 stopping local pause timer[0m
+[0;34m20260627 12:14:09.911 DEBUG  audio.decode - decode_stop:664 decode_stop[0m
+[0;34m20260627 12:14:09.911 DEBUG  audio.decode - Playback.lua:194 source=off[0m
+[0;34m20260627 12:14:09.911 DEBUG  audio.decode - Playback.lua:747 flush streambuf[0m
+[0;34m20260627 12:14:09.911 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:09.911 DEBUG  audio.decode - decode_stop_handler:190 decode_stop_handler[0m
+[0;34m20260627 12:14:09.922 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=audg #26[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - Playback.lua:1109 server sequence # out of sync. server: 0 local: 1[0m
+[0;34m20260627 12:14:09.922 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:09.922 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #81[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - Playback.lua:858 strm s[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - Playback.lua:747 flush streambuf[0m
+[0;34m20260627 12:14:09.922 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - decode_start:702 decode_start[0m
+[0;33m20260627 12:14:09.922 INFO   audio.decode - Playback.lua:480 connect 192.168.1.8:9000 GET /stream.mp3?player=c4:ef:bb:c6:c4:a5 HTTP/1.0[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - Playback.lua:194 source=stream[0m
+[0;33m20260627 12:14:09.922 INFO   audio.decode - decode_start_handler:277 init decoder mp3[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - stream_connectL:510 streambuf connect 192.168.1.8:9000[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - decode_output_set_track_gain:520 Track gain 65536[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - decode_output_set_track_gain:524 Track clip range 7fffffff 80000000[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - decode_set_track_polarity_inversion:529 Polarity inversion 0[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - decode_set_output_channels:536 Output channels left 0, right 0[0m
+[0;34m20260627 12:14:09.922 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:09.922 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=audg #26[0m
+[0;34m20260627 12:14:09.922 DEBUG  audio.decode - Playback.lua:1109 server sequence # out of sync. server: 0 local: 1[0m
+[0;34m20260627 12:14:09.922 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:09.925 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=RESP[0m
+[0;34m20260627 12:14:09.962 DEBUG  audio.decode - Playback.lua:397 resume decoder, 3145727 bytes buffered, decode threshold 2048[0m
+[0;34m20260627 12:14:09.962 DEBUG  audio.decode - decode_resume_decoder:577 decode_resume_decoder[0m
+[0;34m20260627 12:14:09.962 DEBUG  audio.decode - decode_resume_decoder_handler:118 resume_decoder decode state: 1 audio state 0[0m
+[0;34m20260627 12:14:09.962 DEBUG  audio.decode - debug_fullness:106 fullness: 3145727 / 0 | 100.00% / 0.00%[0m
+[0;34m20260627 12:14:09.963 DEBUG  audio.decode - decode_output_samples:280 first buffer sample_rate=44100[0m
+[0;34m20260627 12:14:10.053 DEBUG  audio.decode - Playback.lua:424 resume audio bytesReceivedL=3145727 outputTime=9979 threshold=261120[0m
+[0;34m20260627 12:14:10.053 DEBUG  audio.decode - decode_resume_audio:598 decode_resume_audio start_jiffies=0[0m
+[0;34m20260627 12:14:10.053 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:10.053 DEBUG  audio.decode - decode_resume_audio_handler:129 decode_resume_audio_handler start_jiffies=0[0m
+[0;34m20260627 12:14:10.053 DEBUG  audio.decode - debug_fullness:106 fullness: 2743687 / 3520888 | 87.22% / 99.80%[0m
+[0;34m20260627 12:14:10.053 DEBUG  audio.decode - decode_resume_audio_handler:142 resume_audio decode state: 1 audio state 40[0m
+[0;34m20260627 12:14:10.053 DEBUG  audio.decode - Playback.lua:451 87.2%/99.8%[0m
+[0;34m20260627 12:14:10.143 DEBUG  audio.decode - Playback.lua:381 status TRACK STARTED (elapsed: 54)[0m
+[0;34m20260627 12:14:10.143 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:11.268 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:11.268 DEBUG  audio.decode - Playback.lua:451 99.7%/99.7%[0m
+[0;34m20260627 12:14:12.348 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:12.348 DEBUG  audio.decode - Playback.lua:451 99.9%/99.8%[0m
+[0;34m20260627 12:14:13.000 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:14:13.000 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:13.428 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:13.428 DEBUG  audio.decode - Playback.lua:451 99.9%/99.8%[0m
+[0;34m20260627 12:14:14.463 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:14.464 DEBUG  audio.decode - Playback.lua:451 99.7%/99.8%[0m
+[0;34m20260627 12:14:15.543 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:15.543 DEBUG  audio.decode - Playback.lua:451 99.9%/99.8%[0m
+[0;34m20260627 12:14:16.668 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:16.668 DEBUG  audio.decode - Playback.lua:451 99.9%/99.4%[0m
+[0;34m20260627 12:14:17.000 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:14:17.000 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:17.748 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:17.748 DEBUG  audio.decode - Playback.lua:451 99.9%/99.7%[0m
+[0;34m20260627 12:14:18.828 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:18.828 DEBUG  audio.decode - Playback.lua:451 99.8%/99.5%[0m
+[0;34m20260627 12:14:19.863 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:19.863 DEBUG  audio.decode - Playback.lua:451 99.9%/99.4%[0m
+[0;34m20260627 12:14:20.943 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:20.943 DEBUG  audio.decode - Playback.lua:451 99.8%/99.6%[0m
+[0;34m20260627 12:14:21.000 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:14:21.000 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:22.068 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:22.068 DEBUG  audio.decode - Playback.lua:451 99.7%/99.8%[0m
+[0;34m20260627 12:14:23.148 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:23.148 DEBUG  audio.decode - Playback.lua:451 99.9%/99.7%[0m
+[0;34m20260627 12:14:24.228 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:24.228 DEBUG  audio.decode - Playback.lua:451 99.9%/99.8%[0m
+[0;34m20260627 12:14:25.001 DEBUG  net.slimproto - SlimProto.lua:523 read opcode=strm #28[0m
+[0;34m20260627 12:14:25.001 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:25.263 DEBUG  net.slimproto - SlimProto.lua:722 send opcode=STAT[0m
+[0;34m20260627 12:14:25.263 DEBUG  audio.decode - Playback.lua:451 99.7%/99.7%[0m
