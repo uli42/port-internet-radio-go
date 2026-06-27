@@ -216,12 +216,13 @@ func sendStrmCommand(conn net.Conn, serverPort uint16, mode byte, pcmSampleSize,
 }
 
 // sendAudg sends an audio gain packet setting volume to max.
+// The Lua SlimProto parser (SlimProto.lua:236) does `gainL = unpackNumber(packet, 5, 4) << 9`,
+// so the value sent here is the raw volume 0–100 (NOT pre-shifted). Sending 100 yields
+// gain = 100 << 9 = 51200 in decode:audioGain, giving ~78 % of full digital output.
 func sendAudg(conn net.Conn) error {
 	payload := make([]byte, 8)
-	// The player expects the gain pre-shifted left by 9.
-	// LMS clamps 0-100 then sends (value << 9); 100 << 9 = 51200 is max.
-	binary.BigEndian.PutUint32(payload[0:4], 51200) // gainL = max
-	binary.BigEndian.PutUint32(payload[4:8], 51200) // gainR = max
+	binary.BigEndian.PutUint32(payload[0:4], 100) // volume L = max
+	binary.BigEndian.PutUint32(payload[4:8], 100) // volume R = max
 	return sendPacket(conn, "audg", payload)
 }
 
