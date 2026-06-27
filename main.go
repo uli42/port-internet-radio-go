@@ -202,7 +202,7 @@ func sendStrmCommand(conn net.Conn, serverPort uint16) error {
 	payload[8] = 0                       // spdifEnable
 	payload[9] = 0                       // transitionPeriod (1 byte)
 	payload[10] = 0                      // transitionType
-	payload[11] = 0                      // flags
+	payload[11] = 0x0C                   // flags: bits 2-3 = both output channels (stereo)
 	payload[12] = 0                      // outputThreshold
 	payload[13] = 0                      // slaves
 	// bytes 14-17: replayGain = 0 (4 bytes)
