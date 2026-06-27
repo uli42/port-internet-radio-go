@@ -242,7 +242,33 @@ func sendAude(conn net.Conn, enable bool) error {
 	return sendPacket(conn, "aude", []byte{val})
 }
 
-// handleStreamStart starts streaming a URL or local test file to the SqueezePlay player.
+// Package-level stream lifecycle: when a new stream starts, any previous stream's
+// goroutines (keepalive, data piping) are cancelled immediately so the player gets
+// a clean transition instead of competing keepalive/connection state.
+var (
+	streamStopMu  sync.Mutex
+	streamStop    chan struct{}
+	streamDataCon net.Conn  // player data connection, closed on stop to unblock Read/Write
+	streamDataLis net.Listener // data listener, closed on stop to unblock Accept
+)
+
+func stopCurrentStream() {
+	streamStopMu.Lock()
+	if streamStop != nil {
+		close(streamStop)
+		streamStop = nil
+	}
+	if streamDataCon != nil {
+		streamDataCon.Close()
+		streamDataCon = nil
+	}
+	if streamDataLis != nil {
+		streamDataLis.Close()
+		streamDataLis = nil
+	}
+	streamStopMu.Unlock()
+}
+
 func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	streamURL := r.URL.Query().Get("url")
 	streamFile := r.URL.Query().Get("file")
@@ -290,8 +316,17 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Cancel any previous stream (keepalive + data goroutines)
+	stopCurrentStream()
+
+	// Register the listener so stopCurrentStream can close it
+	streamStopMu.Lock()
+	streamStop = make(chan struct{})
+	thisStop := streamStop
+	streamDataLis = listener
+	streamStopMu.Unlock()
+
 	// Start keepalive goroutine (strm 't' every ~4s)
-	keepaliveStop := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(4 * time.Second)
 		defer ticker.Stop()
@@ -301,7 +336,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 				if err := sendStrmKeepalive(conn); err != nil {
 					return
 				}
-			case <-keepaliveStop:
+			case <-thisStop:
 				return
 			}
 		}
@@ -309,7 +344,15 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer listener.Close()
-		defer close(keepaliveStop)
+		// Signal the keepalive goroutine to stop when we're done
+		defer func() {
+			streamStopMu.Lock()
+			if streamStop != nil {
+				close(streamStop)
+				streamStop = nil
+			}
+			streamStopMu.Unlock()
+		}()
 
 		playerConn, err := listener.Accept()
 		if err != nil {
@@ -317,6 +360,11 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer playerConn.Close()
+
+		// Register the data connection so stopCurrentStream can close it
+		streamStopMu.Lock()
+		streamDataCon = playerConn
+		streamStopMu.Unlock()
 
 		var reader io.ReadCloser
 		contentType := "audio/mpeg"
@@ -366,6 +414,14 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		buf := make([]byte, 65536)
 		firstLog := true
 		for {
+			// Check if a new stream has cancelled us
+			select {
+			case <-thisStop:
+				fmt.Printf("[Stream] cancelled by new stream\n")
+				return
+			default:
+			}
+
 			n, err := reader.Read(buf)
 			if n > 0 {
 				if firstLog {
@@ -441,8 +497,16 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Cancel any previous stream
+	stopCurrentStream()
+
+	streamStopMu.Lock()
+	streamStop = make(chan struct{})
+	thisStop := streamStop
+	streamDataLis = listener
+	streamStopMu.Unlock()
+
 	// Keepalive goroutine
-	keepaliveStop := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(4 * time.Second)
 		defer ticker.Stop()
@@ -452,7 +516,7 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 				if err := sendStrmKeepalive(conn); err != nil {
 					return
 				}
-			case <-keepaliveStop:
+			case <-thisStop:
 				return
 			}
 		}
@@ -460,7 +524,14 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer listener.Close()
-		defer close(keepaliveStop)
+		defer func() {
+			streamStopMu.Lock()
+			if streamStop != nil {
+				close(streamStop)
+				streamStop = nil
+			}
+			streamStopMu.Unlock()
+		}()
 
 		playerConn, err := listener.Accept()
 		if err != nil {
@@ -468,6 +539,10 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer playerConn.Close()
+
+		streamStopMu.Lock()
+		streamDataCon = playerConn
+		streamStopMu.Unlock()
 		fmt.Printf("[PCMTest] player connected\n")
 
 		// HTTP headers required by stream_readL
@@ -493,6 +568,13 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 		lastLog := time.Now()
 
 		for sampleIdx < totalSamples {
+			select {
+			case <-thisStop:
+				fmt.Printf("[PCMTest] cancelled by new stream\n")
+				return
+			default:
+			}
+
 			bytesPerSample := 2
 			channels := 2
 			samplesPerBuf := len(buf) / (bytesPerSample * channels)
