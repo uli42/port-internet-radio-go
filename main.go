@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"math/rand"
 	"net"
 	"net/http"
@@ -188,21 +189,21 @@ func sendPacket(w io.Writer, opcode string, payload []byte) error {
 
 // sendStrmCommand sends a strm packet telling the player to start streaming
 // from a specific port. The player connects to serverIp:serverPort and receives
-// audio data in the format specified by mode (e.g. 'm' = MP3/mad).
-func sendStrmCommand(conn net.Conn, serverPort uint16) error {
+// audio data in the format specified by mode (e.g. 'm' = MP3/mad, 'p' = PCM).
+func sendStrmCommand(conn net.Conn, serverPort uint16, mode byte, pcmSampleSize, pcmSampleRate, pcmChannels, pcmEndianness byte) error {
 	payload := make([]byte, 28)
 	payload[0] = 's'                     // command: start
 	payload[1] = '1'                     // autostart (ASCII '1' = 0x31)
-	payload[2] = 'm'                     // mode: MP3 (mad decoder)
-	payload[3] = 0                       // pcmSampleSize
-	payload[4] = 0                       // pcmSampleRate
-	payload[5] = 0                       // pcmChannels
-	payload[6] = 0                       // pcmEndianness
+	payload[2] = mode
+	payload[3] = pcmSampleSize
+	payload[4] = pcmSampleRate
+	payload[5] = pcmChannels
+	payload[6] = pcmEndianness
 	payload[7] = 0                       // threshold
 	payload[8] = 0                       // spdifEnable
 	payload[9] = 0                       // transitionPeriod (1 byte)
 	payload[10] = 0                      // transitionType
-	payload[11] = 0x0C                   // flags: bits 2-3 = both output channels (stereo)
+	payload[11] = 0x00                   // flags
 	payload[12] = 0                      // outputThreshold
 	payload[13] = 0                      // slaves
 	// bytes 14-17: replayGain = 0 (4 bytes)
@@ -280,7 +281,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("[Stream] listening on port %d for file: %s\n", port, streamFile)
 	}
 
-	if err := sendStrmCommand(conn, port); err != nil {
+	if err := sendStrmCommand(conn, port, 'm', 0, 0, 0, 0); err != nil {
 		listener.Close()
 		fmt.Printf("[Stream] sendStrmCommand error: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -361,9 +362,14 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		totalWritten := int64(0)
 		lastLog := time.Now()
 		buf := make([]byte, 65536)
+		firstLog := true
 		for {
 			n, err := reader.Read(buf)
 			if n > 0 {
+				if firstLog {
+					fmt.Printf("[Stream] first %d bytes of content: % x\n", n, buf[:n])
+					firstLog = false
+				}
 				if _, werr := playerConn.Write(buf[:n]); werr != nil {
 					fmt.Printf("[Stream] write error: %v\n", werr)
 					return
@@ -392,6 +398,123 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintf(w, "streaming file %s on port %d\n", streamFile, port)
 	}
+}
+
+// handlePCMTest streams a generated PCM sine wave to test the audio output chain
+// without involving the MP3 decoder. A clean 440 Hz tone means the output chain
+// (ALSA, gain, format) is working; noise/white noise means the bug is downstream
+// of the decoder.
+func handlePCMTest(w http.ResponseWriter, r *http.Request) {
+	slimConnMu.Lock()
+	conn := slimConn
+	slimConnMu.Unlock()
+	if conn == nil {
+		http.Error(w, "no SlimProto connection", http.StatusServiceUnavailable)
+		return
+	}
+
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		fmt.Printf("[PCMTest] listen error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	port := uint16(listener.Addr().(*net.TCPAddr).Port)
+	fmt.Printf("[PCMTest] listening on port %d\n", port)
+
+	// PCM: 16-bit signed LE stereo 44100 Hz
+	// pcmSampleSize = '1' (2 bytes per sample = 16-bit)
+	// pcmSampleRate = '3' (index 3 = 44100 Hz)
+	// pcmChannels  = '2' (stereo)
+	// pcmEndianness = '1' (little endian)
+	if err := sendStrmCommand(conn, port, 'p', '1', '3', '2', '1'); err != nil {
+		listener.Close()
+		fmt.Printf("[PCMTest] sendStrmCommand error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Keepalive goroutine
+	keepaliveStop := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(4 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := sendStrmKeepalive(conn); err != nil {
+					return
+				}
+			case <-keepaliveStop:
+				return
+			}
+		}
+	}()
+
+	go func() {
+		defer listener.Close()
+		defer close(keepaliveStop)
+
+		playerConn, err := listener.Accept()
+		if err != nil {
+			fmt.Printf("[PCMTest] accept error: %v\n", err)
+			return
+		}
+		defer playerConn.Close()
+		fmt.Printf("[PCMTest] player connected\n")
+
+		// HTTP headers required by stream_readL
+		header := "HTTP/1.0 200 OK\r\nContent-Type: audio/L16\r\nConnection: close\r\n\r\n"
+		if _, err := playerConn.Write([]byte(header)); err != nil {
+			fmt.Printf("[PCMTest] write header error: %v\n", err)
+			return
+		}
+		fmt.Printf("[PCMTest] wrote HTTP headers (%d bytes)\n", len(header))
+
+		// Generate PCM sine wave: 440 Hz, 16-bit signed LE stereo at 44100 Hz
+		const (
+			sampleRate = 44100
+			freq       = 440.0
+			amplitude  = 30000.0
+			duration   = 10 * time.Second
+		)
+
+		totalSamples := int(sampleRate * int(duration.Seconds()))
+		buf := make([]byte, 4096)
+		sampleIdx := 0
+		totalWritten := int64(0)
+		lastLog := time.Now()
+
+		for sampleIdx < totalSamples {
+			bytesPerSample := 2
+			channels := 2
+			samplesPerBuf := len(buf) / (bytesPerSample * channels)
+			off := 0
+			for s := 0; s < samplesPerBuf && sampleIdx < totalSamples; s++ {
+				t := float64(sampleIdx) / sampleRate
+				val := int16(amplitude * math.Sin(2*math.Pi*freq*t))
+				binary.LittleEndian.PutUint16(buf[off:off+2], uint16(val))
+				binary.LittleEndian.PutUint16(buf[off+2:off+4], uint16(val)) // same for right channel
+				off += 4
+				sampleIdx++
+			}
+
+			if _, werr := playerConn.Write(buf[:off]); werr != nil {
+				fmt.Printf("[PCMTest] write error: %v\n", werr)
+				return
+			}
+			totalWritten += int64(off)
+			if time.Since(lastLog) > 2*time.Second {
+				fmt.Printf("[PCMTest] wrote %d bytes (%d samples)\n", totalWritten, sampleIdx)
+				lastLog = time.Now()
+			}
+		}
+
+		fmt.Printf("[PCMTest] done, total written: %d bytes (%d samples)\n", totalWritten, sampleIdx)
+	}()
+
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "streaming PCM sine wave on port %d (10s)\n", port)
 }
 
 // sendVers sends the server version string.
@@ -780,6 +903,7 @@ func handleArtwork(w http.ResponseWriter, r *http.Request) {
 func startHTTPServer(m *ServerMetadata) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/stream/play", handleStreamStart)
+	mux.HandleFunc("/stream/pcmtest", handlePCMTest)
 	mux.HandleFunc("/cometd", func(w http.ResponseWriter, r *http.Request) {
 		handleCometd(w, r, m)
 	})
