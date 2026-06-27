@@ -316,6 +316,8 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		defer playerConn.Close()
 
 		var reader io.ReadCloser
+		contentType := "audio/mpeg"
+		httpStatus := "200 OK"
 		if streamFile != "" {
 			f, err := os.Open(streamFile)
 			if err != nil {
@@ -333,12 +335,28 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 			}
 			defer resp.Body.Close()
 			reader = resp.Body
+			httpStatus = resp.Status
+			if ct := resp.Header.Get("Content-Type"); ct != "" {
+				contentType = ct
+			}
 			fmt.Printf("[Stream] player connected, proxying %s\n", streamURL)
-			fmt.Printf("[Stream] HTTP status=%s, content-type=%s\n", resp.Status, resp.Header.Get("Content-Type"))
+			fmt.Printf("[Stream] HTTP status=%s, content-type=%s\n", resp.Status, contentType)
 			for k, v := range resp.Header {
 				fmt.Printf("[Stream]   %s: %s\n", k, v)
 			}
 		}
+
+		// SqueezePlay's stream reader (stream_readL in streambuf.c) expects
+		// HTTP response headers before the audio data. It parses the response
+		// looking for \r\n\r\n (4 CRLF sequences) before feeding data to the
+		// streambuf. Without these headers, all data gets stuck in the header
+		// buffer and never reaches the decoder.
+		header := fmt.Sprintf("HTTP/1.0 %s\r\nContent-Type: %s\r\nConnection: close\r\n\r\n", httpStatus, contentType)
+		if _, err := playerConn.Write([]byte(header)); err != nil {
+			fmt.Printf("[Stream] write header error: %v\n", err)
+			return
+		}
+		fmt.Printf("[Stream] wrote HTTP headers (%d bytes)\n", len(header))
 
 		totalWritten := int64(0)
 		lastLog := time.Now()
