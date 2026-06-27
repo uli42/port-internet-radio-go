@@ -192,7 +192,7 @@ func sendPacket(w io.Writer, opcode string, payload []byte) error {
 func sendStrmCommand(conn net.Conn, serverPort uint16) error {
 	payload := make([]byte, 28)
 	payload[0] = 's'                     // command: start
-	payload[1] = '1'                     // autostart
+	payload[1] = '1'                     // autostart (ASCII '1' = 0x31)
 	payload[2] = 'm'                     // mode: MP3 (mad decoder)
 	payload[3] = 0                       // pcmSampleSize
 	payload[4] = 0                       // pcmSampleRate
@@ -216,8 +216,10 @@ func sendStrmCommand(conn net.Conn, serverPort uint16) error {
 // sendAudg sends an audio gain packet setting volume to max.
 func sendAudg(conn net.Conn) error {
 	payload := make([]byte, 8)
-	binary.BigEndian.PutUint32(payload[0:4], 128) // gainL = 128 (→ 65536 after << 9)
-	binary.BigEndian.PutUint32(payload[4:8], 128) // gainR = 128
+	// The player expects the gain pre-shifted left by 9.
+	// LMS clamps 0-100 then sends (value << 9); 100 << 9 = 51200 is max.
+	binary.BigEndian.PutUint32(payload[0:4], 51200) // gainL = max
+	binary.BigEndian.PutUint32(payload[4:8], 51200) // gainR = max
 	return sendPacket(conn, "audg", payload)
 }
 
@@ -228,11 +230,22 @@ func sendStrmKeepalive(conn net.Conn) error {
 	return sendPacket(conn, "strm", payload)
 }
 
-// handleStreamStart starts streaming a URL to the SqueezePlay player.
+// sendAude sends an audio enable/disable command to the player.
+func sendAude(conn net.Conn, enable bool) error {
+	val := byte(0)
+	if enable {
+		val = 1
+	}
+	return sendPacket(conn, "aude", []byte{val})
+}
+
+// handleStreamStart starts streaming a URL or local test file to the SqueezePlay player.
 func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	streamURL := r.URL.Query().Get("url")
-	if streamURL == "" {
-		http.Error(w, "missing url parameter", http.StatusBadRequest)
+	streamFile := r.URL.Query().Get("file")
+
+	if streamURL == "" && streamFile == "" {
+		http.Error(w, "missing url or file parameter", http.StatusBadRequest)
 		return
 	}
 
@@ -248,6 +261,10 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	if err := sendAudg(conn); err != nil {
 		fmt.Printf("[Stream] sendAudg error: %v\n", err)
 	}
+	// Enable audio output
+	if err := sendAude(conn, true); err != nil {
+		fmt.Printf("[Stream] sendAude error: %v\n", err)
+	}
 
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
@@ -256,7 +273,12 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	port := uint16(listener.Addr().(*net.TCPAddr).Port)
-	fmt.Printf("[Stream] listening on port %d for %s\n", port, streamURL)
+
+	if streamURL != "" {
+		fmt.Printf("[Stream] listening on port %d for URL: %s\n", port, streamURL)
+	} else {
+		fmt.Printf("[Stream] listening on port %d for file: %s\n", port, streamFile)
+	}
 
 	if err := sendStrmCommand(conn, port); err != nil {
 		listener.Close()
@@ -282,17 +304,6 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// Start fetching the URL in parallel with accepting the player connection
-	type fetchResult struct {
-		resp *http.Response
-		err  error
-	}
-	fetchCh := make(chan fetchResult, 1)
-	go func() {
-		resp, err := http.Get(streamURL)
-		fetchCh <- fetchResult{resp, err}
-	}()
-
 	go func() {
 		defer listener.Close()
 		defer close(keepaliveStop)
@@ -304,29 +315,50 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		}
 		defer playerConn.Close()
 
-		// Wait for HTTP fetch to complete
-		result := <-fetchCh
-		if result.err != nil {
-			fmt.Printf("[Stream] http get error: %v\n", result.err)
-			return
+		var reader io.ReadCloser
+		if streamFile != "" {
+			f, err := os.Open(streamFile)
+			if err != nil {
+				fmt.Printf("[Stream] open file error: %v\n", err)
+				return
+			}
+			defer f.Close()
+			reader = f
+			fmt.Printf("[Stream] player connected, serving file %s\n", streamFile)
+		} else {
+			resp, err := http.Get(streamURL)
+			if err != nil {
+				fmt.Printf("[Stream] http get error: %v\n", err)
+				return
+			}
+			defer resp.Body.Close()
+			reader = resp.Body
+			fmt.Printf("[Stream] player connected, proxying %s\n", streamURL)
+			fmt.Printf("[Stream] HTTP status=%s, content-type=%s\n", resp.Status, resp.Header.Get("Content-Type"))
+			for k, v := range resp.Header {
+				fmt.Printf("[Stream]   %s: %s\n", k, v)
+			}
 		}
-		resp := result.resp
-		defer resp.Body.Close()
 
-		fmt.Printf("[Stream] player connected, proxying %s\n", streamURL)
-
+		totalWritten := int64(0)
+		lastLog := time.Now()
 		buf := make([]byte, 65536)
 		for {
-			n, err := resp.Body.Read(buf)
+			n, err := reader.Read(buf)
 			if n > 0 {
 				if _, werr := playerConn.Write(buf[:n]); werr != nil {
 					fmt.Printf("[Stream] write error: %v\n", werr)
 					return
 				}
+				totalWritten += int64(n)
+				if time.Since(lastLog) > 5*time.Second {
+					fmt.Printf("[Stream] wrote %d bytes so far\n", totalWritten)
+					lastLog = time.Now()
+				}
 			}
 			if err != nil {
 				if err == io.EOF {
-					fmt.Printf("[Stream] stream ended\n")
+					fmt.Printf("[Stream] stream ended, total written: %d bytes\n", totalWritten)
 					return
 				}
 				fmt.Printf("[Stream] read error: %v\n", err)
@@ -335,8 +367,13 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintf(w, "streaming %s on port %d\n", streamURL, port)
+	if streamURL != "" {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprintf(w, "streaming %s on port %d\n", streamURL, port)
+	} else {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprintf(w, "streaming file %s on port %d\n", streamFile, port)
+	}
 }
 
 // sendVers sends the server version string.
@@ -465,6 +502,14 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 				fmt.Printf("[TCP] %s SETD %d sent\n", remote, kv.cmd)
 			}
 
+			// Send initial strm metadata packet — SqueezePlay needs this
+			// to initialize its audio pipeline.
+			if err := sendStrm(conn, 0, 0, "", "", "", 0); err != nil {
+				fmt.Printf("[TCP] %s error sending initial strm: %v\n", remote, err)
+				return
+			}
+			fmt.Printf("[TCP] %s initial strm sent\n", remote)
+
 		case "STAT":
 			if !heloReceived {
 				fmt.Printf("[TCP] %s STAT before HELO, ignoring\n", remote)
@@ -474,7 +519,11 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 			if len(payload) >= 4 {
 				event = strings.TrimRight(string(payload[0:4]), "\x00")
 			}
-			fmt.Printf("[TCP] %s STAT event=%q\n", remote, event)
+			extra := ""
+			if len(payload) > 4 {
+				extra = fmt.Sprintf(" %x", payload[4:])
+			}
+			fmt.Printf("[TCP] %s STAT event=%q (%d bytes)%s\n", remote, event, len(payload), extra)
 
 		case "BYE!":
 			fmt.Printf("[TCP] %s BYE! received\n", remote)
