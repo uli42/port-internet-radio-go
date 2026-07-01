@@ -279,6 +279,331 @@ func stopCurrentStream() {
 	streamStopMu.Unlock()
 }
 
+// handleButtonPress dispatches preset button presses from SqueezePlay's
+// CometD /slim/request channel. Called in a new goroutine.
+func handleButtonPress(btnName string) {
+	slimConnMu.Lock()
+	conn := slimConn
+	slimConnMu.Unlock()
+	if conn == nil {
+		fmt.Printf("[Button] no SlimProto connection\n")
+		return
+	}
+	switch btnName {
+	case "preset_1.single":
+		fmt.Printf("[Button] preset 1 → SWR3 stream\n")
+		go runURLStream(conn, "https://liveradio.swr.de/sw282p3/swr3/")
+	case "preset_2.single":
+		fmt.Printf("[Button] preset 2 → PCM test\n")
+		go runPCMTest(conn)
+	default:
+		fmt.Printf("[Button] unhandled button: %s\n", btnName)
+	}
+}
+
+// runURLStream starts streaming the given URL to the player.
+// Runs entirely in a new goroutine (called from handleButtonPress and direct HTTP).
+func runURLStream(conn net.Conn, streamURL string) {
+	streamStartTime := time.Now()
+
+	// Start upstream fetch early so data may be ready when the player connects
+	fetchCh := make(chan streamFetchResult, 1)
+	go func() {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			DialContext: (&net.Dialer{
+				Timeout: 10 * time.Second,
+			}).DialContext,
+		}
+		insecureClient := &http.Client{Transport: tr}
+		resp, err := insecureClient.Get(streamURL)
+		if err != nil {
+			fmt.Printf("[Stream] upstream fetch failed after %v: %v\n", time.Since(streamStartTime), err)
+			fetchCh <- streamFetchResult{err: err}
+			return
+		}
+		ct := "audio/mpeg"
+		if h := resp.Header.Get("Content-Type"); h != "" {
+			ct = h
+		}
+		fmt.Printf("[Stream] upstream connected in %v, status=%s, content-type=%s\n", time.Since(streamStartTime), resp.Status, ct)
+		fetchCh <- streamFetchResult{
+			reader:      resp.Body,
+			contentType: ct,
+			httpStatus:  resp.Status,
+		}
+	}()
+
+	// Serialize with other stream/PCMTest requests to avoid races
+	streamStartMu.Lock()
+	defer streamStartMu.Unlock()
+
+	// Tell the player to stop and flush its audio buffers
+	if err := sendStrmStop(conn); err != nil {
+		fmt.Printf("[Stream] sendStrmStop error: %v\n", err)
+	}
+
+	// Cancel any previous stream first
+	stopCurrentStream()
+
+	// Enable audio output — don't force volume, let the player use its knob position
+	if err := sendAude(conn, true); err != nil {
+		fmt.Printf("[Stream] sendAude error: %v\n", err)
+	}
+	listener, err := net.Listen("tcp4", ":0")
+	if err != nil {
+		fmt.Printf("[Stream] listen error: %v\n", err)
+		return
+	}
+	port := uint16(listener.Addr().(*net.TCPAddr).Port)
+	fmt.Printf("[Stream] t=%s listening on port %d for URL: %s\n", time.Since(streamStartTime), port, streamURL)
+
+	// Register the listener BEFORE sendStrmCommand
+	streamStopMu.Lock()
+	streamStop = make(chan struct{})
+	thisStop := streamStop
+	streamDataLis = listener
+	streamStopMu.Unlock()
+
+	if err := sendStrmCommand(conn, port, 'm', 0, 0, 0, 0); err != nil {
+		listener.Close()
+		fmt.Printf("[Stream] sendStrmCommand error: %v\n", err)
+		return
+	}
+
+	// Keepalive goroutine
+	go func() {
+		ticker := time.NewTicker(4 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := sendStrmKeepalive(conn); err != nil {
+					return
+				}
+			case <-thisStop:
+				return
+			}
+		}
+	}()
+
+	go func() {
+		defer listener.Close()
+		defer func() {
+			streamStopMu.Lock()
+			if streamStop == thisStop {
+				close(streamStop)
+				streamStop = nil
+			}
+			streamStopMu.Unlock()
+		}()
+
+		playerConn, err := listener.Accept()
+		if err != nil {
+			fmt.Printf("[Stream] accept error: %v\n", err)
+			return
+		}
+		defer playerConn.Close()
+
+		// Write HTTP headers immediately so the player can start buffering
+		headerStr := "HTTP/1.0 200 OK\r\nContent-Type: audio/mpeg\r\nConnection: close\r\n\r\n"
+		if _, err := playerConn.Write([]byte(headerStr)); err != nil {
+			fmt.Printf("[Stream] write header error: %v\n", err)
+			return
+		}
+		fmt.Printf("[Stream] t=%s wrote HTTP headers\n", time.Since(streamStartTime))
+
+		// Wait for the upstream fetch
+		fmt.Printf("[Stream] t=%s waiting for upstream fetch...\n", time.Since(streamStartTime))
+		result := <-fetchCh
+		if result.err != nil {
+			fmt.Printf("[Stream] http get error: %v\n", result.err)
+			return
+		}
+		defer result.reader.Close()
+		reader := result.reader
+		fmt.Printf("[Stream] t=%s upstream ready, proxying %s\n", time.Since(streamStartTime), streamURL)
+
+		totalWritten := int64(0)
+		lastLog := time.Now()
+		buf := make([]byte, 65536)
+		firstLog := true
+		for {
+			select {
+			case <-thisStop:
+				fmt.Printf("[Stream] cancelled by new stream\n")
+				return
+			default:
+			}
+
+			n, err := reader.Read(buf)
+			if n > 0 {
+				if firstLog {
+					fmt.Printf("[Stream] first %d bytes of content: % x\n", n, buf[:n])
+					firstLog = false
+				}
+				if _, werr := playerConn.Write(buf[:n]); werr != nil {
+					fmt.Printf("[Stream] write error: %v\n", werr)
+					return
+				}
+				totalWritten += int64(n)
+				if time.Since(lastLog) > 5*time.Second {
+					fmt.Printf("[Stream] wrote %d bytes so far\n", totalWritten)
+					lastLog = time.Now()
+				}
+			}
+			if err != nil {
+				if err == io.EOF {
+					fmt.Printf("[Stream] stream ended, total written: %d bytes\n", totalWritten)
+					return
+				}
+				fmt.Printf("[Stream] read error: %v\n", err)
+				return
+			}
+		}
+	}()
+}
+
+// runPCMTest starts generating a PCM sine wave on the player.
+// Runs entirely in a new goroutine (called from handleButtonPress).
+func runPCMTest(conn net.Conn) {
+	streamStartMu.Lock()
+	defer streamStartMu.Unlock()
+
+	// Tell the player to stop and flush its audio buffers first
+	if err := sendStrmStop(conn); err != nil {
+		fmt.Printf("[PCMTest] sendStrmStop error: %v\n", err)
+	}
+
+	// Cancel any previous stream first
+	stopCurrentStream()
+
+	listener, err := net.Listen("tcp4", ":0")
+	if err != nil {
+		fmt.Printf("[PCMTest] listen error: %v\n", err)
+		return
+	}
+	port := uint16(listener.Addr().(*net.TCPAddr).Port)
+	fmt.Printf("[PCMTest] listening on port %d\n", port)
+
+	// Enable audio output — let the player use its knob position
+	if err := sendAude(conn, true); err != nil {
+		fmt.Printf("[PCMTest] sendAude error: %v\n", err)
+	}
+
+	// Register the listener BEFORE sendStrmCommand
+	streamStopMu.Lock()
+	streamStop = make(chan struct{})
+	thisStop := streamStop
+	streamDataLis = listener
+	streamStopMu.Unlock()
+
+	// PCM: 16-bit signed LE stereo 44100 Hz
+	if err := sendStrmCommand(conn, port, 'p', '1', '3', '2', '1'); err != nil {
+		listener.Close()
+		fmt.Printf("[PCMTest] sendStrmCommand error: %v\n", err)
+		return
+	}
+
+	// Send an immediate strm timestamp so the player doesn't time out
+	if err := sendStrmKeepalive(conn); err != nil {
+		fmt.Printf("[PCMTest] initial keepalive error: %v\n", err)
+	}
+
+	// Keepalive goroutine
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := sendStrmKeepalive(conn); err != nil {
+					return
+				}
+			case <-thisStop:
+				return
+			}
+		}
+	}()
+
+	go func() {
+		defer listener.Close()
+		defer func() {
+			streamStopMu.Lock()
+			if streamStop == thisStop {
+				close(streamStop)
+				streamStop = nil
+			}
+			streamStopMu.Unlock()
+		}()
+
+		playerConn, err := listener.Accept()
+		if err != nil {
+			fmt.Printf("[PCMTest] accept error: %v\n", err)
+			return
+		}
+		defer playerConn.Close()
+
+		fmt.Printf("[PCMTest] player connected\n")
+
+		// HTTP headers required by stream_readL
+		header := "HTTP/1.0 200 OK\r\nContent-Type: audio/L16\r\nConnection: close\r\n\r\n"
+		if _, err := playerConn.Write([]byte(header)); err != nil {
+			fmt.Printf("[PCMTest] write header error: %v\n", err)
+			return
+		}
+		fmt.Printf("[PCMTest] wrote HTTP headers (%d bytes)\n", len(header))
+
+		// Generate PCM sine wave: 440 Hz, 16-bit signed LE stereo at 44100 Hz
+		const (
+			sampleRate = 44100
+			freq       = 440.0
+			amplitude  = 3000.0
+			duration   = 10 * time.Second
+		)
+
+		totalSamples := int(sampleRate * int(duration.Seconds()))
+		buf := make([]byte, 4096)
+		sampleIdx := 0
+		totalWritten := int64(0)
+		lastLog := time.Now()
+
+		for sampleIdx < totalSamples {
+			select {
+			case <-thisStop:
+				fmt.Printf("[PCMTest] cancelled by new stream\n")
+				return
+			default:
+			}
+
+			bytesPerSample := 2
+			channels := 2
+			samplesPerBuf := len(buf) / (bytesPerSample * channels)
+			off := 0
+			for s := 0; s < samplesPerBuf && sampleIdx < totalSamples; s++ {
+				t := float64(sampleIdx) / sampleRate
+				val := int16(amplitude * math.Sin(2*math.Pi*freq*t))
+				binary.LittleEndian.PutUint16(buf[off:off+2], uint16(val))
+				binary.LittleEndian.PutUint16(buf[off+2:off+4], uint16(val))
+				off += 4
+				sampleIdx++
+			}
+
+			if _, werr := playerConn.Write(buf[:off]); werr != nil {
+				fmt.Printf("[PCMTest] write error: %v\n", werr)
+				return
+			}
+			totalWritten += int64(off)
+			if time.Since(lastLog) > 2*time.Second {
+				fmt.Printf("[PCMTest] wrote %d bytes (%d samples)\n", totalWritten, sampleIdx)
+				lastLog = time.Now()
+			}
+		}
+
+		fmt.Printf("[PCMTest] done, total written: %d bytes (%d samples)\n", totalWritten, sampleIdx)
+	}()
+}
+
 type streamFetchResult struct {
 	reader      io.ReadCloser
 	contentType string
@@ -1422,6 +1747,21 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) > 0 {
 				if cmd, ok := requestArr[0].(string); ok && cmd == "menu" {
 					isMenuRequest = true
+				}
+			}
+		}
+
+		// Handle button commands from SqueezePlay (preset button presses).
+		// The request format is: [MAC, ["button", "preset_N.single"]]
+		if req.Data != nil {
+			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) >= 2 {
+				if cmdArr, ok := requestArr[1].([]interface{}); ok && len(cmdArr) >= 2 {
+					if cmd, ok := cmdArr[0].(string); ok && cmd == "button" {
+						if btnName, ok := cmdArr[1].(string); ok {
+							fmt.Printf("[Button] CometD button: %s\n", btnName)
+							go handleButtonPress(btnName)
+						}
+					}
 				}
 			}
 		}
