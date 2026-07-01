@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/binary"
 	"encoding/json"
 	"flag"
@@ -194,15 +195,15 @@ func sendPacket(w io.Writer, opcode string, payload []byte) error {
 func sendStrmCommand(conn net.Conn, serverPort uint16, mode byte, pcmSampleSize, pcmSampleRate, pcmChannels, pcmEndianness byte) error {
 	payload := make([]byte, 28)
 	payload[0] = 's'                     // command: start
-	payload[1] = '1'                     // autostart (ASCII '1' = 0x31)
+	payload[1] = '1'                     // autostart (ASCII '1')
 	payload[2] = mode
 	payload[3] = pcmSampleSize
 	payload[4] = pcmSampleRate
 	payload[5] = pcmChannels
 	payload[6] = pcmEndianness
-	payload[7] = 0                       // threshold
+	payload[7] = 1                       // threshold (1ms — minimal buffering)
 	payload[8] = 0                       // spdifEnable
-	payload[9] = 0                       // transitionPeriod (1 byte)
+	payload[9] = 0                       // transitionPeriod
 	payload[10] = 0                      // transitionType
 	payload[11] = 0x00                   // flags
 	payload[12] = 0                      // outputThreshold
@@ -215,14 +216,14 @@ func sendStrmCommand(conn net.Conn, serverPort uint16, mode byte, pcmSampleSize,
 	return sendPacket(conn, "strm", payload)
 }
 
-// sendAudg sends an audio gain packet setting volume to max.
+// sendAudg sends an audio gain packet setting volume.
 // The Lua SlimProto parser (SlimProto.lua:236) does `gainL = unpackNumber(packet, 5, 4) << 9`,
-// so the value sent here is the raw volume 0–100 (NOT pre-shifted). Sending 100 yields
-// gain = 100 << 9 = 51200 in decode:audioGain, giving ~78 % of full digital output.
-func sendAudg(conn net.Conn) error {
+// so the value sent here is the raw volume 0–100 (NOT pre-shifted). Sending 50 yields
+// gain = 50 << 9 = 25600 in decode:audioGain, giving ~39 % of full digital output.
+func sendAudg(conn net.Conn, volume int) error {
 	payload := make([]byte, 8)
-	binary.BigEndian.PutUint32(payload[0:4], 100) // volume L = max
-	binary.BigEndian.PutUint32(payload[4:8], 100) // volume R = max
+	binary.BigEndian.PutUint32(payload[0:4], uint32(volume))
+	binary.BigEndian.PutUint32(payload[4:8], uint32(volume))
 	return sendPacket(conn, "audg", payload)
 }
 
@@ -230,6 +231,15 @@ func sendAudg(conn net.Conn) error {
 func sendStrmKeepalive(conn net.Conn) error {
 	payload := make([]byte, 28)
 	payload[0] = 't' // timestamp command (keepalive)
+	return sendPacket(conn, "strm", payload)
+}
+
+// sendStrmStop sends a strm stop command, telling the player to stop playback
+// and flush its audio buffers. This must be called before sendStrmCommand to
+// avoid the 6-9s delay caused by the player draining its old audio buffer.
+func sendStrmStop(conn net.Conn) error {
+	payload := make([]byte, 28)
+	payload[0] = 'q' // stop/quit command
 	return sendPacket(conn, "strm", payload)
 }
 
@@ -246,10 +256,10 @@ func sendAude(conn net.Conn, enable bool) error {
 // goroutines (keepalive, data piping) are cancelled immediately so the player gets
 // a clean transition instead of competing keepalive/connection state.
 var (
-	streamStopMu  sync.Mutex
-	streamStop    chan struct{}
-	streamDataCon net.Conn  // player data connection, closed on stop to unblock Read/Write
-	streamDataLis net.Listener // data listener, closed on stop to unblock Accept
+	streamStopMu   sync.Mutex
+	streamStartMu  sync.Mutex // serializes entry into stream/PCMTest handlers
+	streamStop     chan struct{}
+	streamDataLis  net.Listener // data listener, closed on stop to unblock Accept
 )
 
 func stopCurrentStream() {
@@ -258,15 +268,22 @@ func stopCurrentStream() {
 		close(streamStop)
 		streamStop = nil
 	}
-	if streamDataCon != nil {
-		streamDataCon.Close()
-		streamDataCon = nil
-	}
+	// Close the listener to unblock Accept() in the old goroutine.
+	// Do NOT close the player's data connection — that would send RST
+	// while the player may still be reading, causing DSCO reason=2.
+	// The old goroutine will close it in its defer when it exits.
 	if streamDataLis != nil {
 		streamDataLis.Close()
 		streamDataLis = nil
 	}
 	streamStopMu.Unlock()
+}
+
+type streamFetchResult struct {
+	reader      io.ReadCloser
+	contentType string
+	httpStatus  string
+	err         error
 }
 
 func handleStreamStart(w http.ResponseWriter, r *http.Request) {
@@ -286,16 +303,58 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set max volume before streaming
-	if err := sendAudg(conn); err != nil {
-		fmt.Printf("[Stream] sendAudg error: %v\n", err)
+	// Start upstream fetch early so data may be ready when the player connects
+	var fetchCh chan streamFetchResult
+	streamStartTime := time.Now()
+	if streamURL != "" {
+		fetchCh = make(chan streamFetchResult, 1)
+		go func() {
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				DialContext: (&net.Dialer{
+					Timeout: 10 * time.Second,
+				}).DialContext,
+			}
+			insecureClient := &http.Client{Transport: tr}
+			resp, err := insecureClient.Get(streamURL)
+			if err != nil {
+				fmt.Printf("[Stream] upstream fetch failed after %v: %v\n", time.Since(streamStartTime), err)
+				fetchCh <- streamFetchResult{err: err}
+				return
+			}
+			ct := "audio/mpeg"
+			if h := resp.Header.Get("Content-Type"); h != "" {
+				ct = h
+			}
+			fmt.Printf("[Stream] upstream connected in %v, status=%s, content-type=%s\n", time.Since(streamStartTime), resp.Status, ct)
+			fetchCh <- streamFetchResult{
+				reader:      resp.Body,
+				contentType: ct,
+				httpStatus:  resp.Status,
+			}
+		}()
 	}
-	// Enable audio output
+
+	// Serialize with other stream/PCMTest requests to avoid races
+	streamStartMu.Lock()
+	defer streamStartMu.Unlock()
+
+	// Tell the player to stop and flush its audio buffers BEFORE we make any
+	// changes. This avoids a 6-9s delay where the player continues playing
+	// from its internal buffer before switching to the new stream.
+	if err := sendStrmStop(conn); err != nil {
+		fmt.Printf("[Stream] sendStrmStop error: %v\n", err)
+	}
+
+	// Cancel any previous stream first, so the player doesn't see the old
+	// data connection drop while processing the new strm command.
+	stopCurrentStream()
+
+	// Enable audio output — don't force volume, let the player use its knob position
 	if err := sendAude(conn, true); err != nil {
 		fmt.Printf("[Stream] sendAude error: %v\n", err)
 	}
-
-	listener, err := net.Listen("tcp", ":0")
+	listener, err := net.Listen("tcp4", ":0")
 	if err != nil {
 		fmt.Printf("[Stream] listen error: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -304,10 +363,18 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	port := uint16(listener.Addr().(*net.TCPAddr).Port)
 
 	if streamURL != "" {
-		fmt.Printf("[Stream] listening on port %d for URL: %s\n", port, streamURL)
+		fmt.Printf("[Stream] t=%s listening on port %d for URL: %s\n", time.Since(streamStartTime), port, streamURL)
 	} else {
 		fmt.Printf("[Stream] listening on port %d for file: %s\n", port, streamFile)
 	}
+
+	// Register the listener BEFORE sendStrmCommand so the stream lifecycle is
+	// fully set up when the player starts connecting.
+	streamStopMu.Lock()
+	streamStop = make(chan struct{})
+	thisStop := streamStop
+	streamDataLis = listener
+	streamStopMu.Unlock()
 
 	if err := sendStrmCommand(conn, port, 'm', 0, 0, 0, 0); err != nil {
 		listener.Close()
@@ -315,16 +382,6 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// Cancel any previous stream (keepalive + data goroutines)
-	stopCurrentStream()
-
-	// Register the listener so stopCurrentStream can close it
-	streamStopMu.Lock()
-	streamStop = make(chan struct{})
-	thisStop := streamStop
-	streamDataLis = listener
-	streamStopMu.Unlock()
 
 	// Start keepalive goroutine (strm 't' every ~4s)
 	go func() {
@@ -344,10 +401,10 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer listener.Close()
-		// Signal the keepalive goroutine to stop when we're done
+		// Only close thisStop if it's still the current streamStop (not replaced by a new stream)
 		defer func() {
 			streamStopMu.Lock()
-			if streamStop != nil {
+			if streamStop == thisStop {
 				close(streamStop)
 				streamStop = nil
 			}
@@ -361,14 +418,18 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		}
 		defer playerConn.Close()
 
-		// Register the data connection so stopCurrentStream can close it
-		streamStopMu.Lock()
-		streamDataCon = playerConn
-		streamStopMu.Unlock()
+		// Write HTTP headers immediately so the player can start buffering
+		headerStr := "HTTP/1.0 200 OK\r\nContent-Type: audio/mpeg\r\nConnection: close\r\n\r\n"
+		if streamFile != "" {
+			headerStr = "HTTP/1.0 200 OK\r\nContent-Type: application/octet-stream\r\nConnection: close\r\n\r\n"
+		}
+		if _, err := playerConn.Write([]byte(headerStr)); err != nil {
+			fmt.Printf("[Stream] write header error: %v\n", err)
+			return
+		}
+		fmt.Printf("[Stream] t=%s wrote HTTP headers\n", time.Since(streamStartTime))
 
 		var reader io.ReadCloser
-		contentType := "audio/mpeg"
-		httpStatus := "200 OK"
 		if streamFile != "" {
 			f, err := os.Open(streamFile)
 			if err != nil {
@@ -379,35 +440,17 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 			reader = f
 			fmt.Printf("[Stream] player connected, serving file %s\n", streamFile)
 		} else {
-			resp, err := http.Get(streamURL)
-			if err != nil {
-				fmt.Printf("[Stream] http get error: %v\n", err)
+			// Wait for the upstream fetch started in the handler
+			fmt.Printf("[Stream] t=%s waiting for upstream fetch...\n", time.Since(streamStartTime))
+			result := <-fetchCh
+			if result.err != nil {
+				fmt.Printf("[Stream] http get error: %v\n", result.err)
 				return
 			}
-			defer resp.Body.Close()
-			reader = resp.Body
-			httpStatus = resp.Status
-			if ct := resp.Header.Get("Content-Type"); ct != "" {
-				contentType = ct
-			}
-			fmt.Printf("[Stream] player connected, proxying %s\n", streamURL)
-			fmt.Printf("[Stream] HTTP status=%s, content-type=%s\n", resp.Status, contentType)
-			for k, v := range resp.Header {
-				fmt.Printf("[Stream]   %s: %s\n", k, v)
-			}
+			defer result.reader.Close()
+			reader = result.reader
+			fmt.Printf("[Stream] t=%s upstream ready, proxying %s\n", time.Since(streamStartTime), streamURL)
 		}
-
-		// SqueezePlay's stream reader (stream_readL in streambuf.c) expects
-		// HTTP response headers before the audio data. It parses the response
-		// looking for \r\n\r\n (4 CRLF sequences) before feeding data to the
-		// streambuf. Without these headers, all data gets stuck in the header
-		// buffer and never reaches the decoder.
-		header := fmt.Sprintf("HTTP/1.0 %s\r\nContent-Type: %s\r\nConnection: close\r\n\r\n", httpStatus, contentType)
-		if _, err := playerConn.Write([]byte(header)); err != nil {
-			fmt.Printf("[Stream] write header error: %v\n", err)
-			return
-		}
-		fmt.Printf("[Stream] wrote HTTP headers (%d bytes)\n", len(header))
 
 		totalWritten := int64(0)
 		lastLog := time.Now()
@@ -471,7 +514,19 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	listener, err := net.Listen("tcp", ":0")
+	// Serialize with other stream/PCMTest requests to avoid races
+	streamStartMu.Lock()
+	defer streamStartMu.Unlock()
+
+	// Tell the player to stop and flush its audio buffers first
+	if err := sendStrmStop(conn); err != nil {
+		fmt.Printf("[PCMTest] sendStrmStop error: %v\n", err)
+	}
+
+	// Cancel any previous stream first
+	stopCurrentStream()
+
+	listener, err := net.Listen("tcp4", ":0")
 	if err != nil {
 		fmt.Printf("[PCMTest] listen error: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -480,14 +535,22 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 	port := uint16(listener.Addr().(*net.TCPAddr).Port)
 	fmt.Printf("[PCMTest] listening on port %d\n", port)
 
-	// Set max volume before streaming
-	if err := sendAudg(conn); err != nil {
-		fmt.Printf("[PCMTest] sendAudg error: %v\n", err)
+	// Enable audio output — let the player use its knob position
+	if err := sendAude(conn, true); err != nil {
+		fmt.Printf("[PCMTest] sendAude error: %v\n", err)
 	}
 
+	// Register the listener BEFORE sendStrmCommand
+	streamStopMu.Lock()
+	streamStop = make(chan struct{})
+	thisStop := streamStop
+	streamDataLis = listener
+	streamStopMu.Unlock()
+
 	// PCM: 16-bit signed LE stereo 44100 Hz
-	// pcmSampleSize = '1' (2 bytes per sample = 16-bit)
-	// pcmSampleRate = '3' (index 3 = 44100 Hz)
+	// Note: the Radio's firmware expects ASCII characters for these fields
+	// pcmSampleSize = '1' (16-bit)
+	// pcmSampleRate = '3' (44100 Hz)
 	// pcmChannels  = '2' (stereo)
 	// pcmEndianness = '1' (little endian)
 	if err := sendStrmCommand(conn, port, 'p', '1', '3', '2', '1'); err != nil {
@@ -497,18 +560,14 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cancel any previous stream
-	stopCurrentStream()
-
-	streamStopMu.Lock()
-	streamStop = make(chan struct{})
-	thisStop := streamStop
-	streamDataLis = listener
-	streamStopMu.Unlock()
+	// Send an immediate strm timestamp so the player doesn't time out before the first keepalive
+	if err := sendStrmKeepalive(conn); err != nil {
+		fmt.Printf("[PCMTest] initial keepalive error: %v\n", err)
+	}
 
 	// Keepalive goroutine
 	go func() {
-		ticker := time.NewTicker(4 * time.Second)
+		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
@@ -524,9 +583,10 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer listener.Close()
+		// Only close thisStop if it's still the current streamStop (not replaced by a new stream)
 		defer func() {
 			streamStopMu.Lock()
-			if streamStop != nil {
+			if streamStop == thisStop {
 				close(streamStop)
 				streamStop = nil
 			}
@@ -540,9 +600,6 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 		}
 		defer playerConn.Close()
 
-		streamStopMu.Lock()
-		streamDataCon = playerConn
-		streamStopMu.Unlock()
 		fmt.Printf("[PCMTest] player connected\n")
 
 		// HTTP headers required by stream_readL
@@ -557,7 +614,7 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 		const (
 			sampleRate = 44100
 			freq       = 440.0
-			amplitude  = 30000.0
+			amplitude  = 3000.0
 			duration   = 10 * time.Second
 		)
 
@@ -659,6 +716,12 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 
 	heloReceived := false
 	clientMAC := ""
+	defer func() {
+		if clientMAC != "" {
+			removeConnectedPlayer(clientMAC)
+			pushServerstatusToAll(m)
+		}
+	}()
 
 	// Keepalive goroutine: SqueezePlay silently discards "test" packets
 	// but resets its 60-second inactivity timer on any received data.
@@ -755,11 +818,19 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 			}
 			fmt.Printf("[TCP] %s STAT event=%q (%d bytes)%s\n", remote, event, len(payload), extra)
 
+		case "RESP":
+			// Player echoes HTTP response headers from the data stream connection
+			// back on the control connection. No action needed.
+			if len(payload) > 0 {
+				fmt.Printf("[TCP] %s RESP (%d bytes)\n", remote, len(payload))
+			}
+
 		case "BYE!":
 			fmt.Printf("[TCP] %s BYE! received\n", remote)
 			if clientMAC != "" {
 				removeConnectedPlayer(clientMAC)
 				pushServerstatusToAll(m)
+				clientMAC = "" // defer cleanup will see empty and skip
 			}
 			return
 
@@ -768,22 +839,34 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 			if len(payload) >= 1 {
 				reason = payload[0]
 			}
-			fmt.Printf("[TCP] %s DSCO reason=%d\n", remote, reason)
-			if clientMAC != "" {
-				removeConnectedPlayer(clientMAC)
-				pushServerstatusToAll(m)
+			fmt.Printf("[TCP] %s DSCO reason=%d (stream disconnected, NOT control connection)\n", remote, reason)
+			// DSCO is a stream status event, NOT a disconnection of the control connection.
+			// The player sends it when the audio stream's TCP data connection is dropped
+			// (e.g. because the server closed it during a stream switch). We must NOT return
+			// here — that would close the SlimProto control connection, forcing the player
+			// to reconnect and adding 6–9s of delay on every track change.
+
+		case "setd":
+			if len(payload) >= 1 {
+				cmd := payload[0]
+				switch cmd {
+				case 5: // volume change from knob
+					if len(payload) >= 3 {
+						vol := int(binary.BigEndian.Uint16(payload[1:3]))
+						fmt.Printf("[TCP] %s volume: %d\n", remote, vol)
+					} else {
+						fmt.Printf("[TCP] %s setd cmd=%d raw=%x\n", remote, cmd, payload)
+					}
+				default:
+					fmt.Printf("[TCP] %s setd cmd=%d raw=%x\n", remote, cmd, payload)
+				}
+			} else {
+				fmt.Printf("[TCP] %s setd (empty)\n", remote)
 			}
-			return
 
 		default:
-			fmt.Printf("[TCP] %s unknown opcode %q (%d bytes)\n", remote, opcode, len(payload))
+			fmt.Printf("[TCP] %s unknown opcode %q (%d bytes) %x\n", remote, opcode, len(payload), payload)
 		}
-	}
-
-	// Connection lost — clean up player if not already removed via BYE!/DSCO
-	if clientMAC != "" {
-		removeConnectedPlayer(clientMAC)
-		pushServerstatusToAll(m)
 	}
 }
 
@@ -841,7 +924,7 @@ func pushServerstatusToAll(m *ServerMetadata) {
 // startTCPServer starts the TCP SlimProto control server.
 func startTCPServer(metadata *ServerMetadata) {
 	addr := fmt.Sprintf(":%d", DefaultPort)
-	listener, err := net.Listen("tcp", addr)
+	listener, err := net.Listen("tcp4", addr)
 	if err != nil {
 		fmt.Printf("[TCP] Error starting TCP listener on %s: %v\n", addr, err)
 		os.Exit(1)
@@ -1045,7 +1128,12 @@ func startHTTPServer(m *ServerMetadata) {
 	})
 
 	fmt.Printf("Starting HTTP server on port %s...\n", m.JSONPort)
-	if err := http.ListenAndServe(":"+m.JSONPort, mux); err != nil {
+	hl, err := net.Listen("tcp4", ":"+m.JSONPort)
+	if err != nil {
+		fmt.Printf("HTTP server listen error: %v\n", err)
+		os.Exit(1)
+	}
+	if err := http.Serve(hl, mux); err != nil {
 		fmt.Printf("HTTP server error: %v\n", err)
 		os.Exit(1)
 	}
@@ -1519,17 +1607,17 @@ func main() {
 	localAddr := fmt.Sprintf("0.0.0.0:%d", DefaultPort)
 	udpAddr, err := net.ResolveUDPAddr("udp4", localAddr)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Warning: UDP discovery address error: %v\n", err)
+	} else {
+		broadcastConn, err := net.ListenUDP("udp4", udpAddr)
+		if err != nil {
+			fmt.Printf("Warning: UDP discovery listener failed: %v\n", err)
+		} else {
+			defer broadcastConn.Close()
+			fmt.Printf("Listening for UDP discovery on %s...\n", localAddr)
+			go startUDPListener(broadcastConn, broadcastConn, metadata, "Broadcast")
+		}
 	}
-	broadcastConn, err := net.ListenUDP("udp4", udpAddr)
-	if err != nil {
-		panic(err)
-	}
-	defer broadcastConn.Close()
-	fmt.Printf("Listening for UDP discovery on %s...\n", localAddr)
-
-	// Start UDP broadcast listener
-	go startUDPListener(broadcastConn, broadcastConn, metadata, "Broadcast")
 
 	// Start UDP multicast listener
 	mcastAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", MulticastGroup, DefaultPort))
@@ -1537,7 +1625,7 @@ func main() {
 		if mcastConn, err := net.ListenMulticastUDP("udp4", nil, mcastAddr); err == nil {
 			defer mcastConn.Close()
 			fmt.Printf("Listening for UDP multicast on %s:%d...\n", MulticastGroup, DefaultPort)
-			go startUDPListener(mcastConn, broadcastConn, metadata, "Multicast")
+			go startUDPListener(mcastConn, mcastConn, metadata, "Multicast")
 		} else {
 			fmt.Printf("Warning: multicast listener failed: %v\n", err)
 		}
