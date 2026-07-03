@@ -1729,9 +1729,11 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 
 	case "/slim/request":
 		respClid := ""
+		respChannel := "/slim/request"
 		if req.Data != nil {
 			fmt.Printf("[CometD] /slim/request data: %v\n", req.Data)
 			if respPath, ok := req.Data["response"].(string); ok {
+				respChannel = respPath
 				if matches := regexp.MustCompile(`/([0-9a-f]{8})/`).FindStringSubmatch(respPath); len(matches) > 1 {
 					respClid = matches[1]
 				}
@@ -1741,12 +1743,15 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 			respClid = clid
 		}
 
-		// Check the request command to determine response format
+		// Check the request command to determine response format.
+		// Request format: [playerId, [command, args...]]
 		isMenuRequest := false
 		if req.Data != nil {
-			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) > 0 {
-				if cmd, ok := requestArr[0].(string); ok && cmd == "menu" {
-					isMenuRequest = true
+			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) >= 2 {
+				if cmdArr, ok := requestArr[1].([]interface{}); ok && len(cmdArr) > 0 {
+					if cmd, ok := cmdArr[0].(string); ok && cmd == "menu" {
+						isMenuRequest = true
+					}
 				}
 			}
 		}
@@ -1771,12 +1776,25 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 		}
 		if isMenuRequest {
 			respData = map[string]interface{}{
-				"item_loop": []interface{}{},
+				"item_loop": []interface{}{
+					map[string]interface{}{
+						"id":   "nowPlaying",
+						"text": "Now Playing",
+						"actions": map[string]interface{}{
+							"go": map[string]interface{}{
+								"cmd": []interface{}{"applet", "NowPlaying", "play"},
+							},
+						},
+						"window": map[string]interface{}{
+							"windowId": "nowPlaying",
+						},
+					},
+				},
 			}
 		}
 
 		return CometdRequest{
-			Channel:    "/slim/request",
+			Channel:    respChannel,
 			Successful: true,
 			Id:         req.Id,
 			ClientId:   respClid,
