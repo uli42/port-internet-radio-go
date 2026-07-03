@@ -50,8 +50,10 @@ type CometdRequest struct {
 }
 
 type StreamingClient struct {
-	events   chan []interface{}
-	clientId string
+	events          chan []interface{}
+	clientId        string
+	pendingResponse map[string]interface{}
+	pendingMu       sync.RWMutex
 }
 
 var (
@@ -96,8 +98,9 @@ func getConnectedPlayers() []PlayerInfo {
 
 func registerStreamingClient(clientId string) *StreamingClient {
 	sc := &StreamingClient{
-		events:   make(chan []interface{}, 100),
-		clientId: clientId,
+		events:          make(chan []interface{}, 100),
+		clientId:        clientId,
+		pendingResponse: nil,
 	}
 	streamingClientsMu.Lock()
 	streamingClients[clientId] = sc
@@ -1751,62 +1754,45 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 			respClid = clid
 		}
 
-		// Check the request command to determine response format.
+		// Extract command from request.
 		// Request format: [playerId, [command, args...]]
-		isMenuRequest := false
+		reqPlayerId := ""
+		reqCmdArr := []string{}
 		if req.Data != nil {
 			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) >= 2 {
-				if cmdArr, ok := requestArr[1].([]interface{}); ok && len(cmdArr) > 0 {
-					if cmd, ok := cmdArr[0].(string); ok && cmd == "menu" {
-						isMenuRequest = true
-					}
+				if p, ok := requestArr[0].(string); ok {
+					reqPlayerId = p
 				}
-			}
-		}
-
-		// Handle button commands from SqueezePlay (preset button presses).
-		// The request format is: [MAC, ["button", "preset_N.single"]]
-		if req.Data != nil {
-			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) >= 2 {
-				if cmdArr, ok := requestArr[1].([]interface{}); ok && len(cmdArr) >= 2 {
-					if cmd, ok := cmdArr[0].(string); ok && cmd == "button" {
-						if btnName, ok := cmdArr[1].(string); ok {
-							fmt.Printf("[Button] CometD button: %s\n", btnName)
-							go handleButtonPress(btnName)
+				if cmdArr, ok := requestArr[1].([]interface{}); ok && len(cmdArr) > 0 {
+					if cmd, ok := cmdArr[0].(string); ok {
+						switch cmd {
+						case "menu":
+							buildMenuResponse(respClid, reqPlayerId, m)
+						case "status":
+							buildStatusResponse(respClid, reqPlayerId, cmdArr, m)
+						case "artworkspec":
+							// artworkspec commands are fire-and-forget; return empty
+						case "button":
+							if len(cmdArr) >= 2 {
+								if btnName, ok := cmdArr[1].(string); ok {
+									fmt.Printf("[Button] CometD button: %s\n", btnName)
+									go handleButtonPress(btnName)
+								}
+							}
 						}
 					}
 				}
 			}
 		}
 
-		respData := map[string]interface{}{
-			"response": []interface{}{},
-		}
-		if isMenuRequest {
-			respData = map[string]interface{}{
-				"item_loop": []interface{}{
-					map[string]interface{}{
-						"id":   "nowPlaying",
-						"text": "Now Playing",
-						"actions": map[string]interface{}{
-							"go": map[string]interface{}{
-								"cmd": []interface{}{"applet", "NowPlaying", "play"},
-							},
-						},
-						"window": map[string]interface{}{
-							"windowId": "nowPlaying",
-						},
-					},
-				},
-			}
-		}
+		_ = reqCmdArr
 
 		return CometdRequest{
 			Channel:    respChannel,
 			Successful: true,
 			Id:         req.Id,
 			ClientId:   respClid,
-			Data:       respData,
+			Data:       buildSlimRequestResponse(respClid, reqPlayerId),
 		}
 
 	default:
@@ -1817,6 +1803,98 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 			ClientId:   clid,
 		}
 	}
+}
+
+// buildMenuResponse generates a menu response and stores it for the streaming client.
+func buildMenuResponse(respClid, playerId string, m *ServerMetadata) {
+	sc := getStreamingClient(respClid)
+	if sc == nil {
+		fmt.Printf("[Menu] no streaming client found for %s\n", respClid)
+		return
+	}
+
+	data := map[string]interface{}{
+		"item_loop": []interface{}{
+			map[string]interface{}{
+				"id":        "nowPlaying",
+				"text":      "Now Playing",
+				"node":      "home",
+				"iconStyle": "hm_appletNowPlaying",
+				"actions": map[string]interface{}{
+					"go": map[string]interface{}{
+						"cmd": []interface{}{"applet", "NowPlaying", "play"},
+					},
+				},
+				"window": map[string]interface{}{
+					"windowId": "nowPlaying",
+				},
+			},
+		},
+	}
+
+	sc.pendingMu.Lock()
+	sc.pendingResponse = data
+	sc.pendingMu.Unlock()
+	fmt.Printf("[Menu] prepared menu response for player=%s clientId=%s\n", playerId, respClid)
+}
+
+// buildStatusResponse generates a player status response and stores it for the streaming client.
+func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *ServerMetadata) {
+	sc := getStreamingClient(respClid)
+	if sc == nil {
+		fmt.Printf("[Status] no streaming client found for %s\n", respClid)
+		return
+	}
+
+	players := getConnectedPlayers()
+	playerName := ""
+	for _, p := range players {
+		if p.MAC == playerId {
+			playerName = p.Name
+			break
+		}
+	}
+	if playerName == "" {
+		playerName = playerId
+	}
+
+	data := map[string]interface{}{
+		"player_name":         playerName,
+		"player_ip":           m.IPAddress,
+		"mode":                "stop",
+		"power":               1,
+		"time":                0,
+		"rate":                1,
+		"playlist_timestamp":  0,
+		"playlist_cur_index":  0,
+		"count":               0,
+		"item_loop":           []interface{}{},
+	}
+
+	sc.pendingMu.Lock()
+	sc.pendingResponse = data
+	sc.pendingMu.Unlock()
+	fmt.Printf("[Status] prepared status response for player=%s clientId=%s\n", playerId, respClid)
+}
+
+// buildSlimRequestResponse returns the appropriate CometD response data for a
+// /slim/request command. It returns cached data if buildMenuResponse or
+// buildStatusResponse have prepared it, or a default empty response otherwise.
+func buildSlimRequestResponse(respClid, playerId string) map[string]interface{} {
+	sc := getStreamingClient(respClid)
+	if sc == nil {
+		return map[string]interface{}{"response": []interface{}{}}
+	}
+
+	sc.pendingMu.Lock()
+	data := sc.pendingResponse
+	sc.pendingResponse = nil
+	sc.pendingMu.Unlock()
+
+	if data != nil {
+		return data
+	}
+	return map[string]interface{}{"response": []interface{}{}}
 }
 
 func pushServerStatus(respClid string, id interface{}, m *ServerMetadata, done chan struct{}) {
