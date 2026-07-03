@@ -293,6 +293,7 @@ type CometdRequest struct {
 	ClientId                 string                 `json:"clientId,omitempty"`
 	Id                       interface{}            `json:"id,omitempty"`
 	Successful               bool                   `json:"successful"`
+	Error                    string                 `json:"error,omitempty"`
 	Advice                   map[string]interface{} `json:"advice,omitempty"`
 	Data                     map[string]interface{} `json:"data,omitempty"`
 	Version                  string                 `json:"version,omitempty"`
@@ -2133,6 +2134,33 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 		clientId = fmt.Sprintf("%08x", rand.Int31())
 	}
 
+	if !isHandshake && clientId != "" {
+		clientSessionsMu.Lock()
+		_, ok := clientSessions[clientId]
+		clientSessionsMu.Unlock()
+		if !ok {
+			fmt.Printf("[CometD] Unknown clientId=%s, advising client to handshake\n", clientId)
+			resps := []CometdRequest{
+				{
+					Channel:    reqs[0].Channel,
+					Successful: false,
+					Id:         reqs[0].Id,
+					ClientId:   clientId,
+					Error:      "402::Unknown client",
+					Advice: map[string]interface{}{
+						"reconnect": "handshake",
+					},
+				},
+			}
+			body, _ := json.Marshal(resps)
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+			w.WriteHeader(http.StatusOK)
+			w.Write(body)
+			return
+		}
+	}
+
 	// Generate responses and detect subscribe/request channels for event scheduling
 	resps := make([]CometdRequest, 0, len(reqs))
 	for _, req := range reqs {
@@ -2275,6 +2303,7 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 	switch req.Channel {
 	case "/meta/handshake":
 		clid = fmt.Sprintf("%08x", rand.Int31())
+		getClientSession(clid)
 		return CometdRequest{
 			Channel:                  "/meta/handshake",
 			Successful:               true,
@@ -2933,20 +2962,6 @@ func buildMenuResponse(respClid, playerId string, m *ServerMetadata) {
 	data := map[string]interface{}{
 		"item_loop": []interface{}{
 			map[string]interface{}{
-				"id":        "nowPlaying",
-				"text":      "Now Playing",
-				"node":      "home",
-				"iconStyle": "hm_appletNowPlaying",
-				"actions": map[string]interface{}{
-					"go": map[string]interface{}{
-						"cmd": []interface{}{"applet", "NowPlaying", "play"},
-					},
-				},
-				"window": map[string]interface{}{
-					"windowId": "nowPlaying",
-				},
-			},
-			map[string]interface{}{
 				"id":     "opmlradio",
 				"text":   "Internet Radio",
 				"node":   "home",
@@ -3010,8 +3025,13 @@ func publishPlayerStatus() {
 						"album":       desc,
 						"text":        title,
 						"artwork_url": icon,
+						"icon":        icon,
+						"icon-id":     icon,
 						"url":         urlStr,
 						"duration":    0,
+						"params": map[string]interface{}{
+							"track_id": 0,
+						},
 					},
 				}
 			}
@@ -3099,8 +3119,13 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 				"album":       desc,
 				"text":        title,
 				"artwork_url": icon,
+				"icon":        icon,
+				"icon-id":     icon,
 				"url":         urlStr,
 				"duration":    0,
+				"params": map[string]interface{}{
+					"track_id": 0,
+				},
 			},
 		}
 	}
@@ -3154,8 +3179,13 @@ func buildPlaylistResponse(respClid, playerId string, cmdArr []interface{}, m *S
 				"album":       desc,
 				"text":        title,
 				"artwork_url": icon,
+				"icon":        icon,
+				"icon-id":     icon,
 				"url":         urlStr,
 				"duration":    0,
+				"params": map[string]interface{}{
+					"track_id": 0,
+				},
 			},
 		}
 	}
@@ -3337,6 +3367,9 @@ func main() {
 	fmt.Printf("  Version : %s\n", metadata.Version)
 	fmt.Println("--------------------------------------------------")
 
+	// Start NTP background sync
+	syncTimeWithNTP()
+
 	// Start HTTP CometD server (required for client discovery)
 	go startHTTPServer(metadata)
 
@@ -3492,4 +3525,62 @@ func listenMulticastUDP4(mcastGroup string, port int) (*net.UDPConn, error) {
 	}
 
 	return udpConn, nil
+}
+
+func syncTimeWithNTP() {
+	go func() {
+		// Sync time on startup and then periodically every hour
+		for {
+			err := performNTPSync()
+			if err != nil {
+				fmt.Printf("[NTP] time sync failed: %v\n", err)
+			} else {
+				fmt.Printf("[NTP] time sync successful, system clock updated\n")
+			}
+			time.Sleep(1 * time.Hour)
+		}
+	}()
+}
+
+func performNTPSync() error {
+	conn, err := net.Dial("udp", "pool.ntp.org:123")
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	if err := conn.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		return err
+	}
+
+	req := make([]byte, 48)
+	req[0] = 0x1B // LI = 0, VN = 3, Mode = 3 (client)
+
+	_, err = conn.Write(req)
+	if err != nil {
+		return err
+	}
+
+	resp := make([]byte, 48)
+	_, err = conn.Read(resp)
+	if err != nil {
+		return err
+	}
+
+	secBytes := resp[40:44]
+	seconds := uint32(secBytes[0])<<24 | uint32(secBytes[1])<<16 | uint32(secBytes[2])<<8 | uint32(secBytes[3])
+
+	const ntpEpochOffset = 2208988800
+	if seconds < ntpEpochOffset {
+		return fmt.Errorf("invalid NTP timestamp: %d", seconds)
+	}
+
+	unixSecs := int64(seconds - ntpEpochOffset)
+
+	tv := syscall.NsecToTimeval(unixSecs * 1e9)
+	if err := syscall.Settimeofday(&tv); err != nil {
+		return fmt.Errorf("settimeofday failed: %v", err)
+	}
+
+	return nil
 }
