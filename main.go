@@ -1910,17 +1910,40 @@ func handlePlugins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.HasPrefix(path, "/plugins/") {
+		// Try embedded assets first
+		if data, ok := embeddedAssets[path]; ok {
+			w.Header().Set("Content-Type", "image/png")
+			w.Header().Set("Cache-Control", "max-age=86400")
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+			w.WriteHeader(http.StatusOK)
+			w.Write(data)
+			return
+		}
+
+		// Try cleaning size suffixes from query paths for embedded assets
+		re := regexp.MustCompile(`_([0-9]+x[0-9]+)(_[a-z])?\.png$`)
+		cleanPath := re.ReplaceAllString(path, ".png")
+		if cleanPath != path {
+			if data, ok := embeddedAssets[cleanPath]; ok {
+				w.Header().Set("Content-Type", "image/png")
+				w.Header().Set("Cache-Control", "max-age=86400")
+				w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+				w.WriteHeader(http.StatusOK)
+				w.Write(data)
+				return
+			}
+		}
+
+		// Fallback to local files if present
 		localPath := "." + path
 		if _, err := os.Stat(localPath); err == nil {
 			http.ServeFile(w, r, localPath)
 			return
 		}
-		// Strip size suffixes like _40x40_m or _50x50 from image requests
-		re := regexp.MustCompile(`_([0-9]+x[0-9]+)(_[a-z])?\.png$`)
-		cleanPath := re.ReplaceAllString(localPath, ".png")
-		if cleanPath != localPath {
-			if _, err := os.Stat(cleanPath); err == nil {
-				http.ServeFile(w, r, cleanPath)
+		cleanLocalPath := re.ReplaceAllString(localPath, ".png")
+		if cleanLocalPath != localPath {
+			if _, err := os.Stat(cleanLocalPath); err == nil {
+				http.ServeFile(w, r, cleanLocalPath)
 				return
 			}
 		}

@@ -5,7 +5,7 @@ all: build-amd64 build-squeezebox
 # Build statically linked binary for x86_64 Linux (using host system compiler)
 build-amd64:
 	@echo "Building for x86_64 Linux..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o server_amd64 main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o server_amd64 .
 
 # Download and set up Go 1.14.15 (the last Go compiler fully supporting Linux kernel versions below 2.6.32)
 setup-go1.14:
@@ -20,7 +20,7 @@ setup-go1.14:
 # Build statically linked binary for Squeezebox Radio (ARMv5te, using Go 1.14 for kernel 2.6.26 compatibility)
 build-squeezebox: setup-go1.14
 	@echo "Building for Squeezebox Radio (ARMv5, Linux kernel 2.6.26) using Go 1.14..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 ./go1.14/go/bin/go build -ldflags="-s -w" -o server_arm5 main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 ./go1.14/go/bin/go build -ldflags="-s -w" -o server_arm5 .
 
 # Run the local server
 run: build-amd64
