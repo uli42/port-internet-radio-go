@@ -1,3 +1,5 @@
-./goslimserver.*
-./server.log
-./squeezeplay.log
+/server
+/server_amd64
+/server_arm5
+/goslimserver_arm5
+/go1.14/

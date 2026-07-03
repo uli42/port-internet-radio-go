@@ -4,17 +4,21 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/json"
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"math/rand"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -25,6 +29,255 @@ const (
 	DefaultPort    = 3483
 	MulticastGroup = "239.255.255.250"
 )
+
+// OPML schemas for parsing TuneIn responses
+type OPML struct {
+	XMLName xml.Name  `xml:"opml"`
+	Version string    `xml:"version,attr"`
+	Title   string    `xml:"head>title"`
+	Items   []Outline `xml:"body>outline"`
+}
+
+type Outline struct {
+	Type        string    `xml:"type,attr"`
+	Text        string    `xml:"text,attr"`
+	URL         string    `xml:"URL,attr"`
+	Key         string    `xml:"key,attr"`
+	Bitrate     string    `xml:"bitrate,attr"`
+	Reliability string    `xml:"reliability,attr"`
+	Subtext     string    `xml:"subtext,attr"`
+	GenreID     string    `xml:"genre_id,attr"`
+	Formats     string    `xml:"formats,attr"`
+	Item        string    `xml:"item,attr"`
+	Image       string    `xml:"image,attr"`
+	PresetID    string    `xml:"preset_id,attr"`
+	Playing     string    `xml:"playing,attr"`
+	PlayingImg  string    `xml:"playing_image,attr"`
+	Outlines    []Outline `xml:"outline"`
+}
+
+type MenuFeed struct {
+	Title string
+	Items []Outline
+}
+
+type PlaybackItem struct {
+	Title   string
+	Subtext string
+	Icon    string
+	URL     string
+}
+
+type ClientSession struct {
+	Mu           sync.Mutex
+	CachedFeeds  map[string]MenuFeed // maps feedID (e.g. "root", "presets", "item_0", etc.) to MenuFeed
+	ItemURLs     map[string]string   // maps itemID (e.g. "item_2") to TuneIn play URL
+	ItemMetadata map[string]PlaybackItem
+	NextID       int
+
+	// Current playback state
+	Playing      bool
+	PlayingTitle string
+	PlayingDesc  string
+	PlayingIcon  string
+	PlayingURL   string
+}
+
+var (
+	clientSessions   = make(map[string]*ClientSession)
+	clientSessionsMu sync.Mutex
+)
+
+func getClientSession(clientId string) *ClientSession {
+	clientSessionsMu.Lock()
+	defer clientSessionsMu.Unlock()
+	cs, ok := clientSessions[clientId]
+	if !ok {
+		cs = &ClientSession{
+			CachedFeeds:  make(map[string]MenuFeed),
+			ItemURLs:     make(map[string]string),
+			ItemMetadata: make(map[string]PlaybackItem),
+			NextID:       1,
+		}
+		clientSessions[clientId] = cs
+	}
+	return cs
+}
+
+func (cs *ClientSession) Reset() {
+	cs.Mu.Lock()
+	defer cs.Mu.Unlock()
+	cs.CachedFeeds = make(map[string]MenuFeed)
+	cs.ItemURLs = make(map[string]string)
+	cs.ItemMetadata = make(map[string]PlaybackItem)
+	cs.NextID = 1
+}
+
+// Fetch and parse an OPML feed from a URL
+func fetchOPML(urlStr string) (*OPML, error) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   10 * time.Second,
+	}
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "LogitechSqueezebox/9.0")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
+	}
+
+	var opml OPML
+	if err := xml.NewDecoder(resp.Body).Decode(&opml); err != nil {
+		return nil, err
+	}
+	return &opml, nil
+}
+
+// resolveStreamURL resolves TuneIn Tune.ashx, PLS, and M3U playlists to find a direct stream URL
+func resolveStreamURL(streamURL string) string {
+	for depth := 0; depth < 5; depth++ {
+		lowerURL := strings.ToLower(streamURL)
+		isTuneIn := strings.Contains(lowerURL, "tune.ashx") || strings.Contains(lowerURL, "tunein.com") || strings.Contains(lowerURL, "radiotime.com")
+		isPlaylist := strings.HasSuffix(lowerURL, ".m3u") || strings.HasSuffix(lowerURL, ".m3u8") || strings.HasSuffix(lowerURL, ".pls")
+
+		if isTuneIn || isPlaylist {
+			resolved := fetchPlaylistOrTuneIn(streamURL)
+			if resolved != "" && resolved != streamURL {
+				fmt.Printf("[Resolver] Resolved %s -> %s\n", streamURL, resolved)
+				streamURL = resolved
+				continue
+			}
+		}
+		break
+	}
+	return streamURL
+}
+
+func fetchPlaylistOrTuneIn(urlStr string) string {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   5 * time.Second,
+	}
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("User-Agent", "LogitechSqueezebox/9.0")
+	resp, err := client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return ""
+	}
+
+	bodyStr := string(bodyBytes)
+	lines := strings.Split(bodyStr, "\n")
+	var urls []string
+
+	isPLS := strings.Contains(strings.ToLower(bodyStr), "[playlist]")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		if isPLS {
+			if strings.Contains(line, "=") {
+				parts := strings.SplitN(line, "=", 2)
+				val := strings.TrimSpace(parts[1])
+				if strings.HasPrefix(strings.ToLower(val), "http://") || strings.HasPrefix(strings.ToLower(val), "https://") {
+					urls = append(urls, val)
+				}
+			}
+		} else {
+			if strings.HasPrefix(strings.ToLower(line), "http://") || strings.HasPrefix(strings.ToLower(line), "https://") {
+				urls = append(urls, line)
+			}
+		}
+	}
+
+	if len(urls) == 0 {
+		return ""
+	}
+
+	// Filter out pre-rolls/ads if we have other URLs
+	var cleanUrls []string
+	for _, u := range urls {
+		lowerU := strings.ToLower(u)
+		isAd := strings.Contains(lowerU, "bump") ||
+			strings.Contains(lowerU, "preroll") ||
+			strings.Contains(lowerU, "sonic") ||
+			strings.Contains(lowerU, "_pre") ||
+			strings.Contains(lowerU, "/ad/") ||
+			strings.Contains(lowerU, "ad_") ||
+			strings.Contains(lowerU, "advert")
+		if isAd {
+			continue
+		}
+		cleanUrls = append(cleanUrls, u)
+	}
+
+	if len(cleanUrls) > 0 {
+		return cleanUrls[0]
+	}
+	return urls[0]
+}
+
+type CLIRequest struct {
+	Command string
+	Args    []string
+	Params  map[string]string
+}
+
+func parseCLIRequest(cmdArr []interface{}) CLIRequest {
+	req := CLIRequest{
+		Params: make(map[string]string),
+	}
+	if len(cmdArr) == 0 {
+		return req
+	}
+	if cmd, ok := cmdArr[0].(string); ok {
+		req.Command = cmd
+	}
+
+	for i := 1; i < len(cmdArr); i++ {
+		val := cmdArr[i]
+		if strVal, ok := val.(string); ok {
+			if strings.Contains(strVal, ":") {
+				parts := strings.SplitN(strVal, ":", 2)
+				req.Params[parts[0]] = parts[1]
+			} else {
+				req.Args = append(req.Args, strVal)
+			}
+		} else {
+			req.Args = append(req.Args, fmt.Sprintf("%v", val))
+		}
+	}
+	return req
+}
 
 type ServerMetadata struct {
 	IPAddress string
@@ -65,7 +318,57 @@ var (
 
 	slimConn   net.Conn
 	slimConnMu sync.Mutex
+
+	globalServerMetadata *ServerMetadata
 )
+
+type PlayerPlaybackState struct {
+	Mu           sync.Mutex
+	Playing      bool
+	PlayingTitle string
+	PlayingDesc  string
+	PlayingIcon  string
+	PlayingURL   string
+}
+
+var (
+	playerPlaybacks   = make(map[string]*PlayerPlaybackState)
+	playerPlaybacksMu sync.Mutex
+)
+
+func getPlayerPlayback(mac string) *PlayerPlaybackState {
+	playerPlaybacksMu.Lock()
+	defer playerPlaybacksMu.Unlock()
+	pb, ok := playerPlaybacks[mac]
+	if !ok {
+		pb = &PlayerPlaybackState{}
+		playerPlaybacks[mac] = pb
+	}
+	return pb
+}
+
+type PresetItem struct {
+	Title   string
+	Subtext string
+	Icon    string
+	URL     string
+}
+
+var (
+	presets   = make(map[int]PresetItem)
+	presetsMu sync.Mutex
+)
+
+func initPresets() {
+	presetsMu.Lock()
+	defer presetsMu.Unlock()
+	presets[1] = PresetItem{
+		Title:   "SWR3",
+		Subtext: "Pop music station",
+		Icon:    "plugins/TuneIn/html/images/radiolocal.png",
+		URL:     "https://liveradio.swr.de/sw282p3/swr3/",
+	}
+}
 
 type PlayerInfo struct {
 	MAC   string
@@ -284,7 +587,7 @@ func stopCurrentStream() {
 
 // handleButtonPress dispatches preset button presses from SqueezePlay's
 // CometD /slim/request channel. Called in a new goroutine.
-func handleButtonPress(btnName string) {
+func handleButtonPress(playerId string, btnName string) {
 	slimConnMu.Lock()
 	conn := slimConn
 	slimConnMu.Unlock()
@@ -292,10 +595,63 @@ func handleButtonPress(btnName string) {
 		fmt.Printf("[Button] no SlimProto connection\n")
 		return
 	}
+
+	var presetNum int
+	var action string
+	if n, err := fmt.Sscanf(btnName, "preset_%d.%s", &presetNum, &action); err == nil && n == 2 {
+		pb := getPlayerPlayback(playerId)
+		if action == "hold" {
+			pb.Mu.Lock()
+			playing := pb.Playing
+			title := pb.PlayingTitle
+			desc := pb.PlayingDesc
+			icon := pb.PlayingIcon
+			urlStr := pb.PlayingURL
+			pb.Mu.Unlock()
+
+			if playing && urlStr != "" {
+				presetsMu.Lock()
+				presets[presetNum] = PresetItem{
+					Title:   title,
+					Subtext: desc,
+					Icon:    icon,
+					URL:     urlStr,
+				}
+				presetsMu.Unlock()
+				fmt.Printf("[Button] Stored player %s stream to Preset %d: %s (%s)\n", playerId, presetNum, title, urlStr)
+			} else {
+				fmt.Printf("[Button] Cannot store Preset %d: player is not playing anything\n", presetNum)
+			}
+			return
+		} else if action == "single" {
+			presetsMu.Lock()
+			item, ok := presets[presetNum]
+			presetsMu.Unlock()
+
+			if ok && item.URL != "" {
+				fmt.Printf("[Button] Recalling Preset %d: playing %s (%s)\n", presetNum, item.Title, item.URL)
+				pb.Mu.Lock()
+				pb.Playing = true
+				pb.PlayingTitle = item.Title
+				pb.PlayingDesc = item.Subtext
+				pb.PlayingIcon = item.Icon
+				pb.PlayingURL = item.URL
+				pb.Mu.Unlock()
+
+				go runURLStream(conn, item.URL, pb)
+
+				go func() {
+					time.Sleep(150 * time.Millisecond)
+					publishPlayerStatus()
+				}()
+			} else {
+				fmt.Printf("[Button] Recall Preset %d failed: not set\n", presetNum)
+			}
+			return
+		}
+	}
+
 	switch btnName {
-	case "preset_1.single":
-		fmt.Printf("[Button] preset 1 → SWR3 stream\n")
-		go runURLStream(conn, "https://liveradio.swr.de/sw282p3/swr3/")
 	case "preset_2.single":
 		fmt.Printf("[Button] preset 2 → PCM test\n")
 		go runPCMTest(conn)
@@ -304,9 +660,112 @@ func handleButtonPress(btnName string) {
 	}
 }
 
+func handleJiveFavorites(respClid, playerId string, cmdArr []interface{}) {
+	req := parseCLIRequest(cmdArr)
+	if len(req.Args) == 0 {
+		return
+	}
+	subCmd := req.Args[0]
+	if subCmd == "set_preset" {
+		keyStr := req.Params["key"]
+		var presetNum int
+		if _, err := fmt.Sscanf(keyStr, "%d", &presetNum); err == nil && presetNum >= 0 && presetNum <= 9 {
+			pb := getPlayerPlayback(playerId)
+			pb.Mu.Lock()
+			playing := pb.Playing
+			title := pb.PlayingTitle
+			desc := pb.PlayingDesc
+			icon := pb.PlayingIcon
+			urlStr := pb.PlayingURL
+			pb.Mu.Unlock()
+
+			if playing && urlStr != "" {
+				presetsMu.Lock()
+				presets[presetNum] = PresetItem{
+					Title:   title,
+					Subtext: desc,
+					Icon:    icon,
+					URL:     urlStr,
+				}
+				presetsMu.Unlock()
+				fmt.Printf("[Presets] Stored SqueezePlay player %s stream to Preset %d: %s (%s)\n", playerId, presetNum, title, urlStr)
+			} else {
+				fmt.Printf("[Presets] Cannot store Preset %d: player is not playing anything\n", presetNum)
+			}
+		}
+	}
+}
+
+type IcyReader struct {
+	reader      io.Reader
+	metaInt     int
+	bytesToNext int
+	onMetadata  func(string)
+}
+
+func (r *IcyReader) Read(p []byte) (n int, err error) {
+	if r.metaInt <= 0 {
+		return r.reader.Read(p)
+	}
+
+	if r.bytesToNext == 0 {
+		lenBuf := []byte{0}
+		_, err := io.ReadFull(r.reader, lenBuf)
+		if err != nil {
+			return 0, err
+		}
+		metaLen := int(lenBuf[0]) * 16
+		if metaLen > 0 {
+			metaBuf := make([]byte, metaLen)
+			_, err = io.ReadFull(r.reader, metaBuf)
+			if err != nil {
+				return 0, err
+			}
+			metaStr := string(metaBuf)
+			if r.onMetadata != nil {
+				r.onMetadata(metaStr)
+			}
+		}
+		r.bytesToNext = r.metaInt
+	}
+
+	limit := len(p)
+	if limit > r.bytesToNext {
+		limit = r.bytesToNext
+	}
+
+	n, err = r.reader.Read(p[:limit])
+	if n > 0 {
+		r.bytesToNext -= n
+	}
+	return n, err
+}
+
+func parseIcyMetadata(metaStr string) (string, string) {
+	idx := strings.Index(metaStr, "StreamTitle='")
+	if idx == -1 {
+		return "", ""
+	}
+	sub := metaStr[idx+len("StreamTitle='"):]
+	endIdx := strings.Index(sub, "';")
+	if endIdx == -1 {
+		return "", ""
+	}
+	fullTitle := sub[:endIdx]
+
+	artist := ""
+	title := fullTitle
+	if dashIdx := strings.Index(fullTitle, " - "); dashIdx != -1 {
+		artist = fullTitle[:dashIdx]
+		title = fullTitle[dashIdx+3:]
+	}
+	return title, artist
+}
+
 // runURLStream starts streaming the given URL to the player.
 // Runs entirely in a new goroutine (called from handleButtonPress and direct HTTP).
-func runURLStream(conn net.Conn, streamURL string) {
+func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
+	streamURL = resolveStreamURL(streamURL)
 	streamStartTime := time.Now()
 
 	// Start upstream fetch early so data may be ready when the player connects
@@ -319,21 +778,39 @@ func runURLStream(conn net.Conn, streamURL string) {
 			}).DialContext,
 		}
 		insecureClient := &http.Client{Transport: tr}
-		resp, err := insecureClient.Get(streamURL)
+		req, err := http.NewRequest("GET", streamURL, nil)
+		if err != nil {
+			fmt.Printf("[Stream] request create failed: %v\n", err)
+			fetchCh <- streamFetchResult{err: err}
+			return
+		}
+		req.Header.Set("Icy-MetaData", "1")
+		req.Header.Set("User-Agent", "SlimProto/1.0")
+
+		resp, err := insecureClient.Do(req)
 		if err != nil {
 			fmt.Printf("[Stream] upstream fetch failed after %v: %v\n", time.Since(streamStartTime), err)
 			fetchCh <- streamFetchResult{err: err}
 			return
 		}
+
+		icyMetaInt := 0
+		if icyMetaIntStr := resp.Header.Get("icy-metaint"); icyMetaIntStr != "" {
+			if mi, err := strconv.Atoi(icyMetaIntStr); err == nil {
+				icyMetaInt = mi
+			}
+		}
+
 		ct := "audio/mpeg"
 		if h := resp.Header.Get("Content-Type"); h != "" {
 			ct = h
 		}
-		fmt.Printf("[Stream] upstream connected in %v, status=%s, content-type=%s\n", time.Since(streamStartTime), resp.Status, ct)
+		fmt.Printf("[Stream] upstream connected in %v, status=%s, content-type=%s, icy-metaint=%d\n", time.Since(streamStartTime), resp.Status, ct, icyMetaInt)
 		fetchCh <- streamFetchResult{
 			reader:      resp.Body,
 			contentType: ct,
 			httpStatus:  resp.Status,
+			icyMetaInt:  icyMetaInt,
 		}
 	}()
 
@@ -353,7 +830,7 @@ func runURLStream(conn net.Conn, streamURL string) {
 	if err := sendAude(conn, true); err != nil {
 		fmt.Printf("[Stream] sendAude error: %v\n", err)
 	}
-	listener, err := net.Listen("tcp4", ":0")
+	listener, err := listenTCP4(":0")
 	if err != nil {
 		fmt.Printf("[Stream] listen error: %v\n", err)
 		return
@@ -399,6 +876,12 @@ func runURLStream(conn net.Conn, streamURL string) {
 				streamStop = nil
 			}
 			streamStopMu.Unlock()
+			if pb != nil {
+				pb.Mu.Lock()
+				pb.Playing = false
+				pb.Mu.Unlock()
+				publishPlayerStatus()
+			}
 		}()
 
 		playerConn, err := listener.Accept()
@@ -424,8 +907,25 @@ func runURLStream(conn net.Conn, streamURL string) {
 			return
 		}
 		defer result.reader.Close()
-		reader := result.reader
-		fmt.Printf("[Stream] t=%s upstream ready, proxying %s\n", time.Since(streamStartTime), streamURL)
+		icyReader := &IcyReader{
+			reader:      result.reader,
+			metaInt:     result.icyMetaInt,
+			bytesToNext: result.icyMetaInt,
+			onMetadata: func(metaStr string) {
+				title, artist := parseIcyMetadata(metaStr)
+				if title != "" {
+					fmt.Printf("[ICY] Song update: %s - %s\n", artist, title)
+					if pb != nil {
+						pb.Mu.Lock()
+						pb.PlayingTitle = title
+						pb.PlayingDesc = artist
+						pb.Mu.Unlock()
+						publishPlayerStatus()
+					}
+				}
+			},
+		}
+		fmt.Printf("[Stream] t=%s upstream ready, proxying %s (icy-metaint=%d)\n", time.Since(streamStartTime), streamURL, result.icyMetaInt)
 
 		totalWritten := int64(0)
 		lastLog := time.Now()
@@ -439,7 +939,7 @@ func runURLStream(conn net.Conn, streamURL string) {
 			default:
 			}
 
-			n, err := reader.Read(buf)
+			n, err := icyReader.Read(buf)
 			if n > 0 {
 				if firstLog {
 					fmt.Printf("[Stream] first %d bytes of content: % x\n", n, buf[:n])
@@ -481,7 +981,7 @@ func runPCMTest(conn net.Conn) {
 	// Cancel any previous stream first
 	stopCurrentStream()
 
-	listener, err := net.Listen("tcp4", ":0")
+	listener, err := listenTCP4(":0")
 	if err != nil {
 		fmt.Printf("[PCMTest] listen error: %v\n", err)
 		return
@@ -611,11 +1111,15 @@ type streamFetchResult struct {
 	reader      io.ReadCloser
 	contentType string
 	httpStatus  string
+	icyMetaInt  int
 	err         error
 }
 
 func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	streamURL := r.URL.Query().Get("url")
+	if streamURL != "" {
+		streamURL = resolveStreamURL(streamURL)
+	}
 	streamFile := r.URL.Query().Get("file")
 
 	if streamURL == "" && streamFile == "" {
@@ -682,7 +1186,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	if err := sendAude(conn, true); err != nil {
 		fmt.Printf("[Stream] sendAude error: %v\n", err)
 	}
-	listener, err := net.Listen("tcp4", ":0")
+	listener, err := listenTCP4(":0")
 	if err != nil {
 		fmt.Printf("[Stream] listen error: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -854,7 +1358,7 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 	// Cancel any previous stream first
 	stopCurrentStream()
 
-	listener, err := net.Listen("tcp4", ":0")
+	listener, err := listenTCP4(":0")
 	if err != nil {
 		fmt.Printf("[PCMTest] listen error: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1252,7 +1756,7 @@ func pushServerstatusToAll(m *ServerMetadata) {
 // startTCPServer starts the TCP SlimProto control server.
 func startTCPServer(metadata *ServerMetadata) {
 	addr := fmt.Sprintf(":%d", DefaultPort)
-	listener, err := net.Listen("tcp4", addr)
+	listener, err := listenTCP4(addr)
 	if err != nil {
 		fmt.Printf("[TCP] Error starting TCP listener on %s: %v\n", addr, err)
 		os.Exit(1)
@@ -1399,6 +1903,68 @@ func handleArtwork(w http.ResponseWriter, r *http.Request) {
 	w.Write(placeholderPNG)
 }
 
+func handlePlugins(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+	if strings.Contains(path, "..") {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	if strings.HasPrefix(path, "/plugins/") {
+		localPath := "." + path
+		if _, err := os.Stat(localPath); err == nil {
+			http.ServeFile(w, r, localPath)
+			return
+		}
+		// Strip size suffixes like _40x40_m or _50x50 from image requests
+		re := regexp.MustCompile(`_([0-9]+x[0-9]+)(_[a-z])?\.png$`)
+		cleanPath := re.ReplaceAllString(localPath, ".png")
+		if cleanPath != localPath {
+			if _, err := os.Stat(cleanPath); err == nil {
+				http.ServeFile(w, r, cleanPath)
+				return
+			}
+		}
+	}
+	handleArtwork(w, r)
+}
+
+func cleanIconURL(icon string) string {
+	if strings.HasPrefix(icon, "http://") || strings.HasPrefix(icon, "https://") {
+		return "/imageproxy?u=" + url.QueryEscape(icon)
+	}
+	return icon
+}
+
+func handleImageProxy(w http.ResponseWriter, r *http.Request) {
+	u := r.URL.Query().Get("u")
+	if u == "" {
+		handleArtwork(w, r)
+		return
+	}
+
+	decodedURL, err := url.QueryUnescape(u)
+	if err == nil {
+		u = decodedURL
+	}
+
+	// Strip size suffixes like _40x40_m or _50x50 from remote image requests
+	re := regexp.MustCompile(`_([0-9]+x[0-9]+)(_[a-z])?(\.[a-zA-Z0-9]+)`)
+	u = re.ReplaceAllString(u, "$3")
+
+	resp, err := http.Get(u)
+	if err != nil {
+		handleArtwork(w, r)
+		return
+	}
+	defer resp.Body.Close()
+
+	if ct := resp.Header.Get("Content-Type"); ct != "" {
+		w.Header().Set("Content-Type", ct)
+	}
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
+}
+
 // handleDirectPCM generates PCM and feeds it directly into jive_alsa's
 // shared memory FIFO, bypassing SqueezePlay entirely.
 func handleDirectPCM(w http.ResponseWriter, r *http.Request) {
@@ -1442,9 +2008,10 @@ func startHTTPServer(m *ServerMetadata) {
 	})
 	mux.HandleFunc("/music/", handleArtwork)
 	mux.HandleFunc("/contributor/", handleArtwork)
-	mux.HandleFunc("/imageproxy/", handleArtwork)
+	mux.HandleFunc("/imageproxy", handleImageProxy)
+	mux.HandleFunc("/imageproxy/", handleImageProxy)
 	mux.HandleFunc("/html/", handleArtwork)
-	mux.HandleFunc("/plugins/", handleArtwork)
+	mux.HandleFunc("/plugins/", handlePlugins)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// If it looks like an image/artwork request, serve placeholder
 		if r.URL.Path != "/" && r.URL.Path != "/cometd" && r.URL.Path != "/jsonrpc" {
@@ -1456,7 +2023,7 @@ func startHTTPServer(m *ServerMetadata) {
 	})
 
 	fmt.Printf("Starting HTTP server on port %s...\n", m.JSONPort)
-	hl, err := net.Listen("tcp4", ":"+m.JSONPort)
+	hl, err := listenTCP4(":"+m.JSONPort)
 	if err != nil {
 		fmt.Printf("HTTP server listen error: %v\n", err)
 		os.Exit(1)
@@ -1607,6 +2174,10 @@ func handleCometdStreaming(w http.ResponseWriter, clientId string, initialResps 
 		}
 	}()
 
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	lifetimeLimit := time.After(180 * time.Second)
+
 	for {
 		select {
 		case events, ok := <-sc.events:
@@ -1619,8 +2190,15 @@ func handleCometdStreaming(w http.ResponseWriter, clientId string, initialResps 
 				return
 			}
 			flusher.Flush()
-		case <-time.After(180 * time.Second):
-			fmt.Printf("[CometD] streaming timeout for clientId=%s\n", clientId)
+		case <-ticker.C:
+			// Send an empty JSON array to keep the chunked HTTP connection alive
+			if _, err := w.Write([]byte("[]\n")); err != nil {
+				fmt.Printf("[CometD] streaming keepalive write error for clientId=%s: %v\n", clientId, err)
+				return
+			}
+			flusher.Flush()
+		case <-lifetimeLimit:
+			fmt.Printf("[CometD] streaming connection lifetime limit reached for clientId=%s\n", clientId)
 			return
 		}
 	}
@@ -1765,19 +2343,44 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 				}
 				if cmdArr, ok := requestArr[1].([]interface{}); ok && len(cmdArr) > 0 {
 					if cmd, ok := cmdArr[0].(string); ok {
-						switch cmd {
-						case "menu":
-							buildMenuResponse(respClid, reqPlayerId, m)
-						case "status":
-							buildStatusResponse(respClid, reqPlayerId, cmdArr, m)
-						case "artworkspec":
-							// artworkspec commands are fire-and-forget; return empty
-						case "button":
-							if len(cmdArr) >= 2 {
-								if btnName, ok := cmdArr[1].(string); ok {
-									fmt.Printf("[Button] CometD button: %s\n", btnName)
-									go handleButtonPress(btnName)
+						isRadioCmd := false
+						if cmd == "radios" {
+							handleRadiosMenu(respClid, reqPlayerId, m)
+							isRadioCmd = true
+						} else {
+							for _, sub := range defaultSubmenus {
+								if sub["id"] == cmd {
+									cmdReq := parseCLIRequest(cmdArr)
+									if len(cmdReq.Args) > 0 && cmdReq.Args[0] == "playlist" {
+										handleRadioPlay(respClid, reqPlayerId, cmdReq)
+									} else {
+										handleRadioSubmenu(respClid, reqPlayerId, cmdReq, m)
+									}
+									isRadioCmd = true
+									break
 								}
+							}
+						}
+
+						if !isRadioCmd {
+							switch cmd {
+							case "menu":
+								buildMenuResponse(respClid, reqPlayerId, m)
+							case "status":
+								buildStatusResponse(respClid, reqPlayerId, cmdArr, m)
+							case "playlist":
+								buildPlaylistResponse(respClid, reqPlayerId, cmdArr, m)
+							case "artworkspec":
+								// artworkspec commands are fire-and-forget; return empty
+							case "button":
+								if len(cmdArr) >= 2 {
+									if btnName, ok := cmdArr[1].(string); ok {
+										fmt.Printf("[Button] CometD button for player=%s: %s\n", reqPlayerId, btnName)
+										go handleButtonPress(reqPlayerId, btnName)
+									}
+								}
+							case "jivefavorites":
+								go handleJiveFavorites(respClid, reqPlayerId, cmdArr)
 							}
 						}
 					}
@@ -1806,6 +2409,443 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 }
 
 // buildMenuResponse generates a menu response and stores it for the streaming client.
+var defaultSubmenus = []map[string]interface{}{
+	{
+		"id":   "presets",
+		"text": "My Presets",
+		"icon": "/plugins/TuneIn/html/images/radiopresets.png",
+		"url":  "http://opml.radiotime.com/Browse.ashx?c=presets&partnerId=16",
+	},
+	{
+		"id":   "local",
+		"text": "Local Radio",
+		"icon": "/plugins/TuneIn/html/images/radiolocal.png",
+		"url":  "http://opml.radiotime.com/Browse.ashx?c=local&partnerId=16",
+	},
+	{
+		"id":   "music",
+		"text": "Music",
+		"icon": "/plugins/TuneIn/html/images/radiomusic.png",
+		"url":  "http://opml.radiotime.com/Browse.ashx?c=music&partnerId=16",
+	},
+	{
+		"id":   "news",
+		"text": "News & Talk",
+		"icon": "/plugins/TuneIn/html/images/radionews.png",
+		"url":  "http://opml.radiotime.com/Browse.ashx?id=c57922&partnerId=16",
+	},
+	{
+		"id":   "sports",
+		"text": "Sports",
+		"icon": "/plugins/TuneIn/html/images/radiosports.png",
+		"url":  "http://opml.radiotime.com/Browse.ashx?c=sports&partnerId=16",
+	},
+	{
+		"id":   "talk",
+		"text": "Talk",
+		"icon": "/plugins/TuneIn/html/images/radiotalk.png",
+		"url":  "http://opml.radiotime.com/Browse.ashx?c=talk&partnerId=16",
+	},
+	{
+		"id":   "location",
+		"text": "By Location",
+		"icon": "/plugins/TuneIn/html/images/radioworld.png",
+		"url":  "http://opml.radiotime.com/Browse.ashx?id=r0&partnerId=16",
+	},
+	{
+		"id":   "language",
+		"text": "By Language",
+		"icon": "/plugins/TuneIn/html/images/radioworld.png",
+		"url":  "http://opml.radiotime.com/Browse.ashx?c=lang&partnerId=16",
+	},
+	{
+		"id":   "podcast",
+		"text": "Podcasts",
+		"icon": "/plugins/TuneIn/html/images/podcasts.png",
+		"url":  "http://opml.radiotime.com/Browse.ashx?c=podcast&partnerId=16",
+	},
+	{
+		"id":       "search",
+		"text":     "Search TuneIn",
+		"icon":     "/plugins/TuneIn/html/images/radiosearch.png",
+		"isSearch": true,
+	},
+}
+
+func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
+	sc := getStreamingClient(respClid)
+	if sc == nil {
+		return
+	}
+	session := getClientSession(respClid)
+	session.Reset()
+
+	var items []map[string]interface{}
+
+	opml, err := fetchOPML("http://opml.radiotime.com/Index.aspx?partnerId=16")
+	if err == nil && len(opml.Items) > 0 {
+		fmt.Printf("[Radio] Dynamic main menu fetched successfully\n")
+		session.Mu.Lock()
+		// My Presets first
+		presetsID := fmt.Sprintf("item_%d", session.NextID)
+		session.NextID++
+		session.ItemURLs[presetsID] = "http://opml.radiotime.com/Browse.ashx?c=presets&partnerId=16"
+		items = append(items, map[string]interface{}{
+			"id":     presetsID,
+			"text":   "My Presets",
+			"weight": 5,
+			"icon":   "/plugins/TuneIn/html/images/radiopresets.png",
+			"actions": map[string]interface{}{
+				"go": map[string]interface{}{
+					"cmd": []interface{}{"presets", "items"},
+					"params": map[string]interface{}{
+						"feed_id": presetsID,
+					},
+				},
+			},
+		})
+
+		for _, out := range opml.Items {
+			tag := out.Key
+			if tag == "" && out.Type == "search" {
+				tag = "search"
+			}
+			if tag == "" {
+				continue
+			}
+
+			itemID := fmt.Sprintf("item_%d", session.NextID)
+			session.NextID++
+
+			icon := "/plugins/TuneIn/html/images/radio.png"
+			switch tag {
+			case "local":
+				icon = "/plugins/TuneIn/html/images/radiolocal.png"
+			case "music":
+				icon = "/plugins/TuneIn/html/images/radiomusic.png"
+			case "news":
+				icon = "/plugins/TuneIn/html/images/radionews.png"
+			case "sports":
+				icon = "/plugins/TuneIn/html/images/radiosports.png"
+			case "talk":
+				icon = "/plugins/TuneIn/html/images/radiotalk.png"
+			case "location", "language", "world":
+				icon = "/plugins/TuneIn/html/images/radioworld.png"
+			case "podcast":
+				icon = "/plugins/TuneIn/html/images/podcasts.png"
+			case "search":
+				icon = "/plugins/TuneIn/html/images/radiosearch.png"
+			}
+
+			if out.Type == "search" {
+				items = append(items, map[string]interface{}{
+					"id":   itemID,
+					"text": out.Text,
+					"type": "search",
+					"icon": icon,
+					"actions": map[string]interface{}{
+						"go": map[string]interface{}{
+							"cmd": []interface{}{tag, "items"},
+							"params": map[string]interface{}{
+								"search": "__TAGGEDINPUT__",
+							},
+						},
+					},
+					"input": map[string]interface{}{
+						"len": 3,
+						"help": map[string]interface{}{
+							"text": "Search",
+						},
+					},
+				})
+			} else {
+				session.ItemURLs[itemID] = out.URL
+				items = append(items, map[string]interface{}{
+					"id":     itemID,
+					"text":   out.Text,
+					"weight": len(items) * 10,
+					"icon":   icon,
+					"actions": map[string]interface{}{
+						"go": map[string]interface{}{
+							"cmd": []interface{}{tag, "items"},
+							"params": map[string]interface{}{
+								"feed_id": itemID,
+							},
+						},
+					},
+				})
+			}
+		}
+		session.Mu.Unlock()
+	} else {
+		fmt.Printf("[Radio] Falling back to default static main menu due to error: %v\n", err)
+		session.Mu.Lock()
+		for _, sub := range defaultSubmenus {
+			itemID := fmt.Sprintf("item_%d", session.NextID)
+			session.NextID++
+
+			isSearch, _ := sub["isSearch"].(bool)
+			tag := sub["id"].(string)
+
+			if isSearch {
+				items = append(items, map[string]interface{}{
+					"id":   itemID,
+					"text": sub["text"],
+					"type": "search",
+					"icon": sub["icon"],
+					"actions": map[string]interface{}{
+						"go": map[string]interface{}{
+							"cmd": []interface{}{tag, "items"},
+							"params": map[string]interface{}{
+								"search": "__TAGGEDINPUT__",
+							},
+						},
+					},
+					"input": map[string]interface{}{
+						"len": 3,
+						"help": map[string]interface{}{
+							"text": "Search",
+						},
+					},
+				})
+			} else {
+				urlVal, _ := sub["url"].(string)
+				session.ItemURLs[itemID] = urlVal
+				items = append(items, map[string]interface{}{
+					"id":     itemID,
+					"text":   sub["text"],
+					"weight": len(items) * 10,
+					"icon":   sub["icon"],
+					"actions": map[string]interface{}{
+						"go": map[string]interface{}{
+							"cmd": []interface{}{tag, "items"},
+							"params": map[string]interface{}{
+								"feed_id": itemID,
+							},
+						},
+					},
+				})
+			}
+		}
+		session.Mu.Unlock()
+	}
+
+	data := map[string]interface{}{
+		"count":     len(items),
+		"offset":    0,
+		"item_loop": items,
+	}
+
+	sc.pendingMu.Lock()
+	sc.pendingResponse = data
+	sc.pendingMu.Unlock()
+}
+
+func handleRadioSubmenu(respClid, playerId string, cmdReq CLIRequest, m *ServerMetadata) {
+	sc := getStreamingClient(respClid)
+	if sc == nil {
+		return
+	}
+	session := getClientSession(respClid)
+
+	var feedURL string
+	var feedItems []Outline
+	hasCachedFeed := false
+
+	session.Mu.Lock()
+	feedID := cmdReq.Params["feed_id"]
+	if feedID != "" {
+		if cachedFeed, ok := session.CachedFeeds[feedID]; ok {
+			feedItems = cachedFeed.Items
+			hasCachedFeed = true
+		} else {
+			feedURL = session.ItemURLs[feedID]
+		}
+	}
+
+	if feedURL == "" && !hasCachedFeed {
+		feedURL = cmdReq.Params["url"]
+	}
+
+	searchTerm := cmdReq.Params["search"]
+	if searchTerm != "" {
+		feedURL = "http://opml.radiotime.com/Search.ashx?query=" + url.QueryEscape(searchTerm) + "&partnerId=16"
+	}
+
+	if feedURL == "" && !hasCachedFeed {
+		for _, sub := range defaultSubmenus {
+			if sub["id"] == cmdReq.Command {
+				urlVal, _ := sub["url"].(string)
+				feedURL = urlVal
+				break
+			}
+		}
+	}
+	session.Mu.Unlock()
+
+	if !hasCachedFeed && feedURL != "" {
+		fmt.Printf("[Radio] Fetching OPML feed URL: %s\n", feedURL)
+		opml, err := fetchOPML(feedURL)
+		if err != nil {
+			fmt.Printf("[Radio] Error fetching subfeed: %v\n", err)
+			return
+		}
+		feedItems = opml.Items
+	}
+
+	var items []map[string]interface{}
+	session.Mu.Lock()
+
+	for _, out := range feedItems {
+		itemID := fmt.Sprintf("item_%d", session.NextID)
+		session.NextID++
+
+		if out.Type == "audio" {
+			session.ItemURLs[itemID] = out.URL
+
+			subtext := out.Subtext
+			if subtext == "" {
+				subtext = out.Playing
+			}
+			if subtext == "" && out.Bitrate != "" {
+				subtext = fmt.Sprintf("%skbps", out.Bitrate)
+			}
+
+			session.ItemMetadata[itemID] = PlaybackItem{
+				Title:   out.Text,
+				Subtext: subtext,
+				Icon:    cleanIconURL(out.Image),
+				URL:     out.URL,
+			}
+
+			items = append(items, map[string]interface{}{
+				"id":      itemID,
+				"text":    out.Text,
+				"subtext": subtext,
+				"type":    "audio",
+				"icon":    cleanIconURL(out.Image),
+				"actions": map[string]interface{}{
+					"go": map[string]interface{}{
+						"cmd": []interface{}{cmdReq.Command, "playlist", "play"},
+						"params": map[string]interface{}{
+							"item_id": itemID,
+						},
+					},
+				},
+			})
+		} else if out.Type == "link" || len(out.Outlines) > 0 {
+			if len(out.Outlines) > 0 {
+				session.CachedFeeds[itemID] = MenuFeed{
+					Title: out.Text,
+					Items: out.Outlines,
+				}
+			} else {
+				session.ItemURLs[itemID] = out.URL
+			}
+
+			items = append(items, map[string]interface{}{
+				"id":   itemID,
+				"text": out.Text,
+				"icon": cleanIconURL(out.Image),
+				"actions": map[string]interface{}{
+					"go": map[string]interface{}{
+						"cmd": []interface{}{cmdReq.Command, "items"},
+						"params": map[string]interface{}{
+							"feed_id": itemID,
+						},
+					},
+				},
+			})
+		} else if out.Type == "search" {
+			items = append(items, map[string]interface{}{
+				"id":   itemID,
+				"text": out.Text,
+				"type": "search",
+				"icon": cleanIconURL(out.Image),
+				"actions": map[string]interface{}{
+					"go": map[string]interface{}{
+						"cmd": []interface{}{cmdReq.Command, "items"},
+						"params": map[string]interface{}{
+							"search": "__TAGGEDINPUT__",
+						},
+					},
+				},
+				"input": map[string]interface{}{
+					"len": 3,
+					"help": map[string]interface{}{
+						"text": "Search",
+					},
+				},
+			})
+		}
+	}
+	session.Mu.Unlock()
+
+	data := map[string]interface{}{
+		"count":     len(items),
+		"offset":    0,
+		"item_loop": items,
+	}
+
+	sc.pendingMu.Lock()
+	sc.pendingResponse = data
+	sc.pendingMu.Unlock()
+}
+
+func handleRadioPlay(respClid, playerId string, cmdReq CLIRequest) {
+	session := getClientSession(respClid)
+	session.Mu.Lock()
+	itemID := cmdReq.Params["item_id"]
+	streamURL := session.ItemURLs[itemID]
+	meta, hasMeta := session.ItemMetadata[itemID]
+	session.Mu.Unlock()
+
+	if streamURL == "" {
+		fmt.Printf("[Radio] Play error: item %s not found in cache\n", itemID)
+		return
+	}
+
+	pb := getPlayerPlayback(playerId)
+	pb.Mu.Lock()
+	if hasMeta {
+		pb.Playing = true
+		pb.PlayingTitle = meta.Title
+		pb.PlayingDesc = meta.Subtext
+		pb.PlayingIcon = meta.Icon
+		pb.PlayingURL = meta.URL
+	}
+	pb.Mu.Unlock()
+
+	slimConnMu.Lock()
+	conn := slimConn
+	slimConnMu.Unlock()
+
+	if conn == nil {
+		fmt.Printf("[Radio] Play error: no SlimProto connection\n")
+		return
+	}
+
+	fmt.Printf("[Radio] Tuning to station ID=%s, URL=%s\n", itemID, streamURL)
+	go runURLStream(conn, streamURL, pb)
+
+	sc := getStreamingClient(respClid)
+	if sc != nil {
+		data := map[string]interface{}{
+			"count":     0,
+			"offset":    0,
+			"item_loop": []interface{}{},
+		}
+		sc.pendingMu.Lock()
+		sc.pendingResponse = data
+		sc.pendingMu.Unlock()
+	}
+
+	go func() {
+		time.Sleep(150 * time.Millisecond)
+		publishPlayerStatus()
+	}()
+}
+
 func buildMenuResponse(respClid, playerId string, m *ServerMetadata) {
 	sc := getStreamingClient(respClid)
 	if sc == nil {
@@ -1829,6 +2869,21 @@ func buildMenuResponse(respClid, playerId string, m *ServerMetadata) {
 					"windowId": "nowPlaying",
 				},
 			},
+			map[string]interface{}{
+				"id":     "opmlradio",
+				"text":   "Internet Radio",
+				"node":   "home",
+				"icon":   "/plugins/TuneIn/html/images/radio.png",
+				"weight": 25,
+				"actions": map[string]interface{}{
+					"go": map[string]interface{}{
+						"cmd": []interface{}{"radios", 0, 100},
+						"params": map[string]interface{}{
+							"menu": "radios",
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -1836,6 +2891,87 @@ func buildMenuResponse(respClid, playerId string, m *ServerMetadata) {
 	sc.pendingResponse = data
 	sc.pendingMu.Unlock()
 	fmt.Printf("[Menu] prepared menu response for player=%s clientId=%s\n", playerId, respClid)
+}
+
+func publishPlayerStatus() {
+	m := globalServerMetadata
+	if m == nil {
+		return
+	}
+
+	streamingClientsMu.Lock()
+	defer streamingClientsMu.Unlock()
+
+	for clid, sc := range streamingClients {
+		players := getConnectedPlayers()
+		for _, p := range players {
+			session := getClientSession(clid)
+			session.Mu.Lock()
+			playing := session.Playing
+			title := session.PlayingTitle
+			desc := session.PlayingDesc
+			icon := session.PlayingIcon
+			urlStr := session.PlayingURL
+			session.Mu.Unlock()
+
+			mode := "stop"
+			count := 0
+			itemLoop := []interface{}{}
+			remote := 0
+			currentTitle := ""
+			if playing {
+				mode = "play"
+				count = 1
+				remote = 1
+				currentTitle = title
+				itemLoop = []interface{}{
+					map[string]interface{}{
+						"id":          0,
+						"title":       title,
+						"track":       title,
+						"artist":      desc,
+						"album":       desc,
+						"text":        title,
+						"artwork_url": icon,
+						"url":         urlStr,
+						"duration":    0,
+					},
+				}
+			}
+
+			statusData := map[string]interface{}{
+				"player_name":        p.Name,
+				"player_ip":          m.IPAddress,
+				"mode":               mode,
+				"power":              1,
+				"time":               0,
+				"rate":               1,
+				"playlist_timestamp": time.Now().Unix(),
+				"playlist_cur_index": 0,
+				"playlist_tracks":    count,
+				"count":              count,
+				"item_loop":          itemLoop,
+				"remote":             remote,
+				"current_title":      currentTitle,
+			}
+
+			select {
+			case sc.events <- []interface{}{
+				map[string]interface{}{
+					"channel": "/" + clid + "/slim/playerstatus",
+					"data":    statusData,
+				},
+				map[string]interface{}{
+					"channel": "/slim/playerstatus/" + p.MAC,
+					"data":    statusData,
+				},
+			}:
+				fmt.Printf("[CometD] Published playerstatus for client=%s player=%s (mode=%s)\n", clid, p.MAC, mode)
+			default:
+				// Avoid blocking
+			}
+		}
+	}
 }
 
 // buildStatusResponse generates a player status response and stores it for the streaming client.
@@ -1858,23 +2994,104 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 		playerName = playerId
 	}
 
+	session := getClientSession(respClid)
+	session.Mu.Lock()
+	playing := session.Playing
+	title := session.PlayingTitle
+	desc := session.PlayingDesc
+	icon := session.PlayingIcon
+	urlStr := session.PlayingURL
+	session.Mu.Unlock()
+
+	mode := "stop"
+	count := 0
+	itemLoop := []interface{}{}
+	remote := 0
+	currentTitle := ""
+	if playing {
+		mode = "play"
+		count = 1
+		remote = 1
+		currentTitle = title
+		itemLoop = []interface{}{
+			map[string]interface{}{
+				"id":          0,
+				"title":       title,
+				"track":       title,
+				"artist":      desc,
+				"album":       desc,
+				"text":        title,
+				"artwork_url": icon,
+				"url":         urlStr,
+				"duration":    0,
+			},
+		}
+	}
+
 	data := map[string]interface{}{
-		"player_name":         playerName,
-		"player_ip":           m.IPAddress,
-		"mode":                "stop",
-		"power":               1,
-		"time":                0,
-		"rate":                1,
-		"playlist_timestamp":  0,
-		"playlist_cur_index":  0,
-		"count":               0,
-		"item_loop":           []interface{}{},
+		"player_name":        playerName,
+		"player_ip":          m.IPAddress,
+		"mode":               mode,
+		"power":              1,
+		"time":               0,
+		"rate":               1,
+		"playlist_timestamp": time.Now().Unix(),
+		"playlist_cur_index": 0,
+		"playlist_tracks":    count,
+		"count":              count,
+		"item_loop":          itemLoop,
+		"remote":             remote,
+		"current_title":      currentTitle,
 	}
 
 	sc.pendingMu.Lock()
 	sc.pendingResponse = data
 	sc.pendingMu.Unlock()
-	fmt.Printf("[Status] prepared status response for player=%s clientId=%s\n", playerId, respClid)
+	fmt.Printf("[Status] prepared status response for player=%s clientId=%s (mode=%s)\n", playerId, respClid, mode)
+}
+
+func buildPlaylistResponse(respClid, playerId string, cmdArr []interface{}, m *ServerMetadata) {
+	sc := getStreamingClient(respClid)
+	if sc == nil {
+		fmt.Printf("[Playlist] no streaming client found for %s\n", respClid)
+		return
+	}
+
+	session := getClientSession(respClid)
+	session.Mu.Lock()
+	playing := session.Playing
+	title := session.PlayingTitle
+	desc := session.PlayingDesc
+	icon := session.PlayingIcon
+	urlStr := session.PlayingURL
+	session.Mu.Unlock()
+
+	var playlistLoop []interface{}
+	if playing {
+		playlistLoop = []interface{}{
+			map[string]interface{}{
+				"id":          0,
+				"title":       title,
+				"track":       title,
+				"artist":      desc,
+				"album":       desc,
+				"text":        title,
+				"artwork_url": icon,
+				"url":         urlStr,
+				"duration":    0,
+			},
+		}
+	}
+
+	data := map[string]interface{}{
+		"playlist_loop": playlistLoop,
+		"count":         len(playlistLoop),
+	}
+
+	sc.pendingMu.Lock()
+	sc.pendingResponse = data
+	sc.pendingMu.Unlock()
+	fmt.Printf("[Playlist] prepared playlist response for player=%s clientId=%s (count=%d)\n", playerId, respClid, len(playlistLoop))
 }
 
 // buildSlimRequestResponse returns the appropriate CometD response data for a
@@ -2006,6 +3223,7 @@ func getLocalIPv4() string {
 }
 
 func main() {
+	initPresets()
 	nameFlag := flag.String("name", "GoSlimServer", "Friendly name of the server")
 	uuidFlag := flag.String("uuid", "goslimserver-uuid-1234", "UUID of the server")
 	jsonPortFlag := flag.String("json", "9000", "CometD HTTP port")
@@ -2030,6 +3248,7 @@ func main() {
 		CLIPort:   cliPort,
 		Version:   version,
 	}
+	globalServerMetadata = metadata
 
 	fmt.Println("==================================================")
 	fmt.Println("            SlimProto Server (Go)")
@@ -2047,36 +3266,153 @@ func main() {
 	// Start TCP SlimProto control server (port 3483)
 	go startTCPServer(metadata)
 
-	// Setup UDP discovery for network discovery
-	localAddr := fmt.Sprintf("0.0.0.0:%d", DefaultPort)
-	udpAddr, err := net.ResolveUDPAddr("udp4", localAddr)
+	// Setup UDP discovery for network discovery (localhost only)
+	localAddr := fmt.Sprintf("127.0.0.1:%d", DefaultPort)
+	broadcastConn, err := listenUDP4(DefaultPort)
 	if err != nil {
-		fmt.Printf("Warning: UDP discovery address error: %v\n", err)
+		fmt.Printf("Warning: UDP discovery listener failed: %v\n", err)
 	} else {
-		broadcastConn, err := net.ListenUDP("udp4", udpAddr)
-		if err != nil {
-			fmt.Printf("Warning: UDP discovery listener failed: %v\n", err)
-		} else {
-			defer broadcastConn.Close()
-			fmt.Printf("Listening for UDP discovery on %s...\n", localAddr)
-			go startUDPListener(broadcastConn, broadcastConn, metadata, "Broadcast")
-		}
-	}
-
-	// Start UDP multicast listener
-	mcastAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", MulticastGroup, DefaultPort))
-	if err == nil {
-		if mcastConn, err := net.ListenMulticastUDP("udp4", nil, mcastAddr); err == nil {
-			defer mcastConn.Close()
-			fmt.Printf("Listening for UDP multicast on %s:%d...\n", MulticastGroup, DefaultPort)
-			go startUDPListener(mcastConn, mcastConn, metadata, "Multicast")
-		} else {
-			fmt.Printf("Warning: multicast listener failed: %v\n", err)
-		}
+		defer broadcastConn.Close()
+		fmt.Printf("Listening for UDP discovery on %s...\n", localAddr)
+		go startUDPListener(broadcastConn, broadcastConn, metadata, "Broadcast")
 	}
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	<-sig
 	fmt.Println("\nShutting down. Goodbye!")
+}
+
+// listenTCP4 creates a net.Listener using raw syscalls to bypass GO's default SOCK_CLOEXEC / SOCK_NONBLOCK flags inside socket().
+// This is required to support older Linux kernels like the Squeezebox Radio's 2.6.26-rt kernel, which throws EINVAL (invalid argument) socket errors otherwise.
+func listenTCP4(addr string) (net.Listener, error) {
+	portStr := addr
+	if idx := strings.LastIndex(addr, ":"); idx != -1 {
+		portStr = addr[idx+1:]
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		port = 0
+	}
+
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1); err != nil {
+		syscall.Close(fd)
+		return nil, err
+	}
+
+	saddr := &syscall.SockaddrInet4{
+		Port: port,
+		Addr: [4]byte{127, 0, 0, 1},
+	}
+	if err := syscall.Bind(fd, saddr); err != nil {
+		syscall.Close(fd)
+		return nil, err
+	}
+
+	if err := syscall.Listen(fd, 128); err != nil {
+		syscall.Close(fd)
+		return nil, err
+	}
+
+	file := os.NewFile(uintptr(fd), "listener")
+	defer file.Close()
+
+	return net.FileListener(file)
+}
+
+// listenUDP4 creates a *net.UDPConn using raw syscalls to bypass Go's default SOCK_CLOEXEC / SOCK_NONBLOCK flags.
+// This is required to support legacy Linux kernels (like 2.6.26) on the Squeezebox Radio.
+func listenUDP4(port int) (*net.UDPConn, error) {
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1); err != nil {
+		syscall.Close(fd)
+		return nil, err
+	}
+
+	saddr := &syscall.SockaddrInet4{
+		Port: port,
+		Addr: [4]byte{127, 0, 0, 1},
+	}
+	if err := syscall.Bind(fd, saddr); err != nil {
+		syscall.Close(fd)
+		return nil, err
+	}
+
+	file := os.NewFile(uintptr(fd), "udp-listener")
+	defer file.Close()
+
+	conn, err := net.FilePacketConn(file)
+	if err != nil {
+		return nil, err
+	}
+
+	udpConn, ok := conn.(*net.UDPConn)
+	if !ok {
+		conn.Close()
+		return nil, fmt.Errorf("not a UDP connection")
+	}
+
+	return udpConn, nil
+}
+
+// listenMulticastUDP4 creates a multicast *net.UDPConn and joins the specified multicast group using raw syscalls.
+func listenMulticastUDP4(mcastGroup string, port int) (*net.UDPConn, error) {
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1); err != nil {
+		syscall.Close(fd)
+		return nil, err
+	}
+
+	saddr := &syscall.SockaddrInet4{
+		Port: port,
+		Addr: [4]byte{0, 0, 0, 0},
+	}
+	if err := syscall.Bind(fd, saddr); err != nil {
+		syscall.Close(fd)
+		return nil, err
+	}
+
+	ip := net.ParseIP(mcastGroup).To4()
+	if ip == nil {
+		syscall.Close(fd)
+		return nil, fmt.Errorf("invalid multicast group: %s", mcastGroup)
+	}
+
+	mreq := &syscall.IPMreq{
+		Multiaddr: [4]byte{ip[0], ip[1], ip[2], ip[3]},
+		Interface: [4]byte{0, 0, 0, 0},
+	}
+	if err := syscall.SetsockoptIPMreq(fd, syscall.IPPROTO_IP, syscall.IP_ADD_MEMBERSHIP, mreq); err != nil {
+		syscall.Close(fd)
+		return nil, err
+	}
+
+	file := os.NewFile(uintptr(fd), "udp-mcast-listener")
+	defer file.Close()
+
+	conn, err := net.FilePacketConn(file)
+	if err != nil {
+		return nil, err
+	}
+
+	udpConn, ok := conn.(*net.UDPConn)
+	if !ok {
+		conn.Close()
+		return nil, fmt.Errorf("not a UDP connection")
+	}
+
+	return udpConn, nil
 }
