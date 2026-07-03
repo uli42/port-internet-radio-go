@@ -2368,7 +2368,19 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 					if cmd, ok := cmdArr[0].(string); ok {
 						isRadioCmd := false
 						if cmd == "radios" {
-							handleRadiosMenu(respClid, reqPlayerId, m)
+							cmdReq := parseCLIRequest(cmdArr)
+							if len(cmdReq.Args) > 0 {
+								subCmd := cmdReq.Args[0]
+								if subCmd == "items" {
+									handleRadioSubmenu(respClid, reqPlayerId, cmdReq, m)
+								} else if subCmd == "playlist" {
+									handleRadioPlay(respClid, reqPlayerId, cmdReq)
+								} else {
+									handleRadiosMenu(respClid, reqPlayerId, m)
+								}
+							} else {
+								handleRadiosMenu(respClid, reqPlayerId, m)
+							}
 							isRadioCmd = true
 						} else {
 							for _, sub := range defaultSubmenus {
@@ -2568,7 +2580,7 @@ func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
 					"icon": icon,
 					"actions": map[string]interface{}{
 						"go": map[string]interface{}{
-							"cmd": []interface{}{tag, "items"},
+							"cmd": []interface{}{"radios", "items"},
 							"params": map[string]interface{}{
 								"search": "__TAGGEDINPUT__",
 							},
@@ -2590,7 +2602,7 @@ func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
 					"icon":   icon,
 					"actions": map[string]interface{}{
 						"go": map[string]interface{}{
-							"cmd": []interface{}{tag, "items"},
+							"cmd": []interface{}{"radios", "items"},
 							"params": map[string]interface{}{
 								"feed_id": itemID,
 							},
@@ -2608,7 +2620,6 @@ func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
 			session.NextID++
 
 			isSearch, _ := sub["isSearch"].(bool)
-			tag := sub["id"].(string)
 
 			if isSearch {
 				items = append(items, map[string]interface{}{
@@ -2618,7 +2629,7 @@ func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
 					"icon": sub["icon"],
 					"actions": map[string]interface{}{
 						"go": map[string]interface{}{
-							"cmd": []interface{}{tag, "items"},
+							"cmd": []interface{}{"radios", "items"},
 							"params": map[string]interface{}{
 								"search": "__TAGGEDINPUT__",
 							},
@@ -2641,7 +2652,7 @@ func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
 					"icon":   sub["icon"],
 					"actions": map[string]interface{}{
 						"go": map[string]interface{}{
-							"cmd": []interface{}{tag, "items"},
+							"cmd": []interface{}{"radios", "items"},
 							"params": map[string]interface{}{
 								"feed_id": itemID,
 							},
@@ -2749,7 +2760,7 @@ func handleRadioSubmenu(respClid, playerId string, cmdReq CLIRequest, m *ServerM
 				"icon":    cleanIconURL(out.Image),
 				"actions": map[string]interface{}{
 					"go": map[string]interface{}{
-						"cmd": []interface{}{cmdReq.Command, "playlist", "play"},
+						"cmd": []interface{}{"radios", "playlist", "play"},
 						"params": map[string]interface{}{
 							"item_id": itemID,
 						},
@@ -2772,7 +2783,7 @@ func handleRadioSubmenu(respClid, playerId string, cmdReq CLIRequest, m *ServerM
 				"icon": cleanIconURL(out.Image),
 				"actions": map[string]interface{}{
 					"go": map[string]interface{}{
-						"cmd": []interface{}{cmdReq.Command, "items"},
+						"cmd": []interface{}{"radios", "items"},
 						"params": map[string]interface{}{
 							"feed_id": itemID,
 						},
@@ -2787,7 +2798,7 @@ func handleRadioSubmenu(respClid, playerId string, cmdReq CLIRequest, m *ServerM
 				"icon": cleanIconURL(out.Image),
 				"actions": map[string]interface{}{
 					"go": map[string]interface{}{
-						"cmd": []interface{}{cmdReq.Command, "items"},
+						"cmd": []interface{}{"radios", "items"},
 						"params": map[string]interface{}{
 							"search": "__TAGGEDINPUT__",
 						},
