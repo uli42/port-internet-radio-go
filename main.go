@@ -915,7 +915,9 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 			streamStopMu.Unlock()
 			if pb != nil {
 				pb.Mu.Lock()
-				pb.Playing = false
+				if pb.PlayingURL == streamURL {
+					pb.Playing = false
+				}
 				pb.Mu.Unlock()
 				publishPlayerStatus()
 			}
@@ -2569,7 +2571,7 @@ func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
 			"icon":   "/plugins/TuneIn/html/images/radiopresets.png",
 			"actions": map[string]interface{}{
 				"go": map[string]interface{}{
-					"cmd": []interface{}{"presets", "items"},
+					"cmd": []interface{}{"radios", "items"},
 					"params": map[string]interface{}{
 						"feed_id": presetsID,
 					},
@@ -2878,12 +2880,16 @@ func handleRadioPlay(respClid, playerId string, cmdReq CLIRequest) {
 
 	pb := getPlayerPlayback(playerId)
 	pb.Mu.Lock()
+	pb.Playing = true
+	pb.PlayingURL = streamURL
 	if hasMeta {
-		pb.Playing = true
 		pb.PlayingTitle = meta.Title
 		pb.PlayingDesc = meta.Subtext
 		pb.PlayingIcon = meta.Icon
-		pb.PlayingURL = meta.URL
+	} else {
+		pb.PlayingTitle = streamURL
+		pb.PlayingDesc = ""
+		pb.PlayingIcon = ""
 	}
 	pb.Mu.Unlock()
 
