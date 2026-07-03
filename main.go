@@ -359,15 +359,50 @@ var (
 	presetsMu sync.Mutex
 )
 
+func savePresets() {
+	presetsMu.Lock()
+	defer presetsMu.Unlock()
+
+	data, err := json.MarshalIndent(presets, "", "  ")
+	if err != nil {
+		fmt.Printf("[Presets] Error marshaling presets: %v\n", err)
+		return
+	}
+
+	err = ioutil.WriteFile("presets.json", data, 0644)
+	if err != nil {
+		fmt.Printf("[Presets] Error saving presets to file: %v\n", err)
+	} else {
+		fmt.Printf("[Presets] Presets saved to presets.json\n")
+	}
+}
+
 func initPresets() {
 	presetsMu.Lock()
 	defer presetsMu.Unlock()
+
+	data, err := ioutil.ReadFile("presets.json")
+	if err == nil {
+		var loaded map[int]PresetItem
+		if err := json.Unmarshal(data, &loaded); err == nil {
+			presets = loaded
+			fmt.Printf("[Presets] Loaded %d presets from presets.json\n", len(presets))
+			return
+		}
+	}
+
+	// Fallback to default
 	presets[1] = PresetItem{
 		Title:   "SWR3",
 		Subtext: "Pop music station",
 		Icon:    "plugins/TuneIn/html/images/radiolocal.png",
 		URL:     "https://liveradio.swr.de/sw282p3/swr3/",
 	}
+
+	// Save the default preset
+	data, _ = json.MarshalIndent(presets, "", "  ")
+	_ = ioutil.WriteFile("presets.json", data, 0644)
+	fmt.Printf("[Presets] Created default presets.json\n")
 }
 
 type PlayerInfo struct {
@@ -618,6 +653,7 @@ func handleButtonPress(playerId string, btnName string) {
 					URL:     urlStr,
 				}
 				presetsMu.Unlock()
+				savePresets()
 				fmt.Printf("[Button] Stored player %s stream to Preset %d: %s (%s)\n", playerId, presetNum, title, urlStr)
 			} else {
 				fmt.Printf("[Button] Cannot store Preset %d: player is not playing anything\n", presetNum)
@@ -688,6 +724,7 @@ func handleJiveFavorites(respClid, playerId string, cmdArr []interface{}) {
 					URL:     urlStr,
 				}
 				presetsMu.Unlock()
+				savePresets()
 				fmt.Printf("[Presets] Stored SqueezePlay player %s stream to Preset %d: %s (%s)\n", playerId, presetNum, title, urlStr)
 			} else {
 				fmt.Printf("[Presets] Cannot store Preset %d: player is not playing anything\n", presetNum)
@@ -2939,14 +2976,14 @@ func publishPlayerStatus() {
 	for clid, sc := range streamingClients {
 		players := getConnectedPlayers()
 		for _, p := range players {
-			session := getClientSession(clid)
-			session.Mu.Lock()
-			playing := session.Playing
-			title := session.PlayingTitle
-			desc := session.PlayingDesc
-			icon := session.PlayingIcon
-			urlStr := session.PlayingURL
-			session.Mu.Unlock()
+			pb := getPlayerPlayback(p.MAC)
+			pb.Mu.Lock()
+			playing := pb.Playing
+			title := pb.PlayingTitle
+			desc := pb.PlayingDesc
+			icon := pb.PlayingIcon
+			urlStr := pb.PlayingURL
+			pb.Mu.Unlock()
 
 			mode := "stop"
 			count := 0
@@ -3028,14 +3065,14 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 		playerName = playerId
 	}
 
-	session := getClientSession(respClid)
-	session.Mu.Lock()
-	playing := session.Playing
-	title := session.PlayingTitle
-	desc := session.PlayingDesc
-	icon := session.PlayingIcon
-	urlStr := session.PlayingURL
-	session.Mu.Unlock()
+	pb := getPlayerPlayback(playerId)
+	pb.Mu.Lock()
+	playing := pb.Playing
+	title := pb.PlayingTitle
+	desc := pb.PlayingDesc
+	icon := pb.PlayingIcon
+	urlStr := pb.PlayingURL
+	pb.Mu.Unlock()
 
 	mode := "stop"
 	count := 0
@@ -3091,14 +3128,14 @@ func buildPlaylistResponse(respClid, playerId string, cmdArr []interface{}, m *S
 		return
 	}
 
-	session := getClientSession(respClid)
-	session.Mu.Lock()
-	playing := session.Playing
-	title := session.PlayingTitle
-	desc := session.PlayingDesc
-	icon := session.PlayingIcon
-	urlStr := session.PlayingURL
-	session.Mu.Unlock()
+	pb := getPlayerPlayback(playerId)
+	pb.Mu.Lock()
+	playing := pb.Playing
+	title := pb.PlayingTitle
+	desc := pb.PlayingDesc
+	icon := pb.PlayingIcon
+	urlStr := pb.PlayingURL
+	pb.Mu.Unlock()
 
 	var playlistLoop []interface{}
 	if playing {
