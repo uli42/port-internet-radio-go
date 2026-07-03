@@ -1,9 +1,14 @@
-.PHONY: all build-amd64 build-squeezebox clean run setup-go1.14
+.PHONY: all build-amd64 build-squeezebox clean run setup-go1.14 generate
 
 all: build-amd64 build-squeezebox
 
+# Generate assets.go by scanning the plugins/ directory
+generate:
+	@echo "Generating embedded asset mapping in assets.go..."
+	python3 generate_assets.py
+
 # Build statically linked binary for x86_64 Linux (using host system compiler)
-build-amd64:
+build-amd64: generate
 	@echo "Building for x86_64 Linux..."
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o server_amd64 .
 
@@ -18,7 +23,7 @@ setup-go1.14:
 	fi
 
 # Build statically linked binary for Squeezebox Radio (ARMv5te, using Go 1.14 for kernel 2.6.26 compatibility)
-build-squeezebox: setup-go1.14
+build-squeezebox: setup-go1.14 generate
 	@echo "Building for Squeezebox Radio (ARMv5, Linux kernel 2.6.26) using Go 1.14..."
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 ./go1.14/go/bin/go build -ldflags="-s -w" -o server_arm5 .
 
@@ -28,5 +33,5 @@ run: build-amd64
 
 # Clean built binaries and legacy compiler
 clean:
-	rm -f server server_amd64 server_arm5
+	rm -f server server_amd64 server_arm5 assets.go
 	rm -rf go1.14
