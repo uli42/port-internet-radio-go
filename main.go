@@ -1733,7 +1733,15 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 		if req.Data != nil {
 			fmt.Printf("[CometD] /slim/request data: %v\n", req.Data)
 			if respPath, ok := req.Data["response"].(string); ok {
-				respChannel = respPath
+				// Only use the response path as the channel when the request
+				// has an id (i.e., a callback is registered). Requests without
+				// an id (like artworkspec with func=nil) must respond on
+				// /slim/request, which the client's "no action" handler
+				// silently ignores. Responding on the response path without
+				// an id triggers a "No id. event:" error in Comet.lua:943.
+				if req.Id != nil {
+					respChannel = respPath
+				}
 				if matches := regexp.MustCompile(`/([0-9a-f]{8})/`).FindStringSubmatch(respPath); len(matches) > 1 {
 					respClid = matches[1]
 				}
