@@ -3260,8 +3260,8 @@ func main() {
 	cliPort := *cliPortFlag
 	version := *versionFlag
 
-	// Detect local IP address for discovery
-	ipAddress := getLocalIPv4()
+	// Set local IP address to localhost for discovery
+	ipAddress := "127.0.0.1"
 
 	metadata := &ServerMetadata{
 		IPAddress: ipAddress,
