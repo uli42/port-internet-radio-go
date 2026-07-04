@@ -368,6 +368,38 @@ var (
 	presetsMu sync.Mutex
 )
 
+func normalizePlayerId(playerId string) string {
+	if len(playerId) == 17 && strings.Contains(playerId, ":") {
+		return strings.ToLower(playerId)
+	}
+
+	connectedPlayersMu.RLock()
+	defer connectedPlayersMu.RUnlock()
+	for mac := range connectedPlayers {
+		return mac
+	}
+
+	return strings.ToLower(playerId)
+}
+
+func getPresetsFilePath() string {
+	if info, err := os.Stat("/etc/squeezeplay/userpath/settings"); err == nil && info.IsDir() {
+		testPath := "/etc/squeezeplay/userpath/settings/.presets_test"
+		if err := ioutil.WriteFile(testPath, []byte("test"), 0644); err == nil {
+			_ = os.Remove(testPath)
+			return "/etc/squeezeplay/userpath/settings/presets.json"
+		}
+	}
+	if info, err := os.Stat("/root"); err == nil && info.IsDir() {
+		testPath := "/root/.presets_test"
+		if err := ioutil.WriteFile(testPath, []byte("test"), 0644); err == nil {
+			_ = os.Remove(testPath)
+			return "/root/presets.json"
+		}
+	}
+	return "presets.json"
+}
+
 func savePresets() {
 	presetsMu.Lock()
 	defer presetsMu.Unlock()
@@ -378,11 +410,12 @@ func savePresets() {
 		return
 	}
 
-	err = ioutil.WriteFile("presets.json", data, 0644)
+	path := getPresetsFilePath()
+	err = ioutil.WriteFile(path, data, 0644)
 	if err != nil {
-		fmt.Printf("[Presets] Error saving presets to file: %v\n", err)
+		fmt.Printf("[Presets] Error saving presets to file (%s): %v\n", path, err)
 	} else {
-		fmt.Printf("[Presets] Presets saved to presets.json\n")
+		fmt.Printf("[Presets] Presets saved to %s\n", path)
 	}
 }
 
@@ -390,12 +423,13 @@ func initPresets() {
 	presetsMu.Lock()
 	defer presetsMu.Unlock()
 
-	data, err := ioutil.ReadFile("presets.json")
+	path := getPresetsFilePath()
+	data, err := ioutil.ReadFile(path)
 	if err == nil {
 		var loaded map[int]PresetItem
 		if err := json.Unmarshal(data, &loaded); err == nil {
 			presets = loaded
-			fmt.Printf("[Presets] Loaded %d presets from presets.json\n", len(presets))
+			fmt.Printf("[Presets] Loaded %d presets from %s\n", len(presets), path)
 			return
 		}
 	}
@@ -410,8 +444,8 @@ func initPresets() {
 
 	// Save the default preset
 	data, _ = json.MarshalIndent(presets, "", "  ")
-	_ = ioutil.WriteFile("presets.json", data, 0644)
-	fmt.Printf("[Presets] Created default presets.json\n")
+	_ = ioutil.WriteFile(path, data, 0644)
+	fmt.Printf("[Presets] Created default presets file at %s\n", path)
 }
 
 type PlayerInfo struct {
@@ -2436,7 +2470,11 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) >= 2 {
 				if p, ok := requestArr[0].(string); ok {
 					reqPlayerId = p
+				} else if pFloat, ok := requestArr[0].(float64); ok {
+					reqPlayerId = fmt.Sprintf("%.0f", pFloat)
 				}
+				reqPlayerId = normalizePlayerId(reqPlayerId)
+
 				if cmdArr, ok := requestArr[1].([]interface{}); ok && len(cmdArr) > 0 {
 					if cmd, ok := cmdArr[0].(string); ok {
 						isRadioCmd := false
