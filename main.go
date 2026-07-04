@@ -260,7 +260,7 @@ type CLIRequest struct {
 	Params  map[string]string
 }
 
-func parseCLIRequest(cmdArr []interface{}) CLIRequest {
+func parseCLIRequest(cmdArr []interface{}, paramsObj map[string]interface{}) CLIRequest {
 	req := CLIRequest{
 		Params: make(map[string]string),
 	}
@@ -282,6 +282,14 @@ func parseCLIRequest(cmdArr []interface{}) CLIRequest {
 			}
 		} else {
 			req.Args = append(req.Args, fmt.Sprintf("%v", val))
+		}
+	}
+
+	for k, v := range paramsObj {
+		if strVal, ok := v.(string); ok {
+			req.Params[k] = strVal
+		} else {
+			req.Params[k] = fmt.Sprintf("%v", v)
 		}
 	}
 	return req
@@ -338,6 +346,7 @@ type PlayerPlaybackState struct {
 	PlayingDesc  string
 	PlayingIcon  string
 	PlayingURL   string
+	StationName  string
 }
 
 var (
@@ -498,7 +507,16 @@ func unregisterStreamingClient(clientId string) {
 func getStreamingClient(clientId string) *StreamingClient {
 	streamingClientsMu.Lock()
 	defer streamingClientsMu.Unlock()
-	return streamingClients[clientId]
+	sc, ok := streamingClients[clientId]
+	if !ok && clientId != "" {
+		sc = &StreamingClient{
+			events:   make(chan []interface{}, 100),
+			clientId: clientId,
+		}
+		streamingClients[clientId] = sc
+		fmt.Printf("[Client] Auto-registered streaming client %s on the fly\n", clientId)
+	}
+	return sc
 }
 
 type JsonRpcRequest struct {
@@ -739,8 +757,8 @@ func handleButtonPress(playerId string, btnName string) {
 	}
 }
 
-func handleJiveFavorites(respClid, playerId string, cmdArr []interface{}) {
-	req := parseCLIRequest(cmdArr)
+func handleJiveFavorites(respClid, playerId string, cmdArr []interface{}, paramsObj map[string]interface{}) {
+	req := parseCLIRequest(cmdArr, paramsObj)
 	if len(req.Args) == 0 {
 		return
 	}
@@ -2476,10 +2494,14 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 				reqPlayerId = normalizePlayerId(reqPlayerId)
 
 				if cmdArr, ok := requestArr[1].([]interface{}); ok && len(cmdArr) > 0 {
+					var paramsObj map[string]interface{}
+					if len(requestArr) >= 3 {
+						paramsObj, _ = requestArr[2].(map[string]interface{})
+					}
 					if cmd, ok := cmdArr[0].(string); ok {
 						isRadioCmd := false
 						if cmd == "radios" {
-							cmdReq := parseCLIRequest(cmdArr)
+							cmdReq := parseCLIRequest(cmdArr, paramsObj)
 							if len(cmdReq.Args) > 0 {
 								subCmd := cmdReq.Args[0]
 								if subCmd == "items" {
@@ -2496,7 +2518,7 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 						} else {
 							for _, sub := range defaultSubmenus {
 								if sub["id"] == cmd {
-									cmdReq := parseCLIRequest(cmdArr)
+									cmdReq := parseCLIRequest(cmdArr, paramsObj)
 									if len(cmdReq.Args) > 0 && cmdReq.Args[0] == "playlist" {
 										handleRadioPlay(respClid, reqPlayerId, cmdReq)
 									} else {
@@ -2526,7 +2548,7 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 									}
 								}
 							case "jivefavorites":
-								go handleJiveFavorites(respClid, reqPlayerId, cmdArr)
+								go handleJiveFavorites(respClid, reqPlayerId, cmdArr, paramsObj)
 							}
 						}
 					}
@@ -2958,10 +2980,12 @@ func handleRadioPlay(respClid, playerId string, cmdReq CLIRequest) {
 		pb.PlayingTitle = meta.Title
 		pb.PlayingDesc = meta.Subtext
 		pb.PlayingIcon = meta.Icon
+		pb.StationName = meta.Title
 	} else {
 		pb.PlayingTitle = streamURL
 		pb.PlayingDesc = ""
 		pb.PlayingIcon = ""
+		pb.StationName = streamURL
 	}
 	pb.Mu.Unlock()
 
@@ -3047,6 +3071,7 @@ func publishPlayerStatus() {
 			desc := pb.PlayingDesc
 			icon := pb.PlayingIcon
 			urlStr := pb.PlayingURL
+			stationName := pb.StationName
 			pb.Mu.Unlock()
 
 			mode := "stop"
@@ -3066,7 +3091,7 @@ func publishPlayerStatus() {
 						"track":       title,
 						"artist":      desc,
 						"album":       desc,
-						"text":        title,
+						"text":        stationName,
 						"artwork_url": icon,
 						"icon":        icon,
 						"icon-id":     icon,
@@ -3141,6 +3166,7 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 	desc := pb.PlayingDesc
 	icon := pb.PlayingIcon
 	urlStr := pb.PlayingURL
+	stationName := pb.StationName
 	pb.Mu.Unlock()
 
 	mode := "stop"
@@ -3160,7 +3186,7 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 				"track":       title,
 				"artist":      desc,
 				"album":       desc,
-				"text":        title,
+				"text":        stationName,
 				"artwork_url": icon,
 				"icon":        icon,
 				"icon-id":     icon,
