@@ -712,19 +712,24 @@ func handleButtonPress(playerId string, btnName string) {
 			desc := pb.PlayingDesc
 			icon := pb.PlayingIcon
 			urlStr := pb.PlayingURL
+			stationName := pb.StationName
 			pb.Mu.Unlock()
 
 			if playing && urlStr != "" {
+				presetTitle := stationName
+				if presetTitle == "" {
+					presetTitle = title
+				}
 				presetsMu.Lock()
 				presets[presetNum] = PresetItem{
-					Title:   title,
+					Title:   presetTitle,
 					Subtext: desc,
 					Icon:    icon,
 					URL:     urlStr,
 				}
 				presetsMu.Unlock()
 				savePresets()
-				fmt.Printf("[Button] Stored player %s stream to Preset %d: %s (%s)\n", playerId, presetNum, title, urlStr)
+				fmt.Printf("[Button] Stored player %s stream to Preset %d: %s (%s)\n", playerId, presetNum, presetTitle, urlStr)
 				publishPresetStored(playerId, presetNum)
 			} else {
 				fmt.Printf("[Button] Cannot store Preset %d: player is not playing anything\n", presetNum)
