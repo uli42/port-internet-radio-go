@@ -802,19 +802,24 @@ func handleJiveFavorites(respClid, playerId string, cmdArr []interface{}, params
 				pDesc := pb.PlayingDesc
 				pIcon := pb.PlayingIcon
 				pUrlStr := pb.PlayingURL
+				stationName := pb.StationName
 				pb.Mu.Unlock()
 
 				if playing && pUrlStr != "" {
+					presetTitle := stationName
+					if presetTitle == "" {
+						presetTitle = pTitle
+					}
 					presetsMu.Lock()
 					presets[presetNum] = PresetItem{
-						Title:   pTitle,
+						Title:   presetTitle,
 						Subtext: pDesc,
 						Icon:    pIcon,
 						URL:     pUrlStr,
 					}
 					presetsMu.Unlock()
 					savePresets()
-					fmt.Printf("[Presets] Stored SqueezePlay player %s stream to Preset %d (current track): %s (%s)\n", playerId, presetNum, pTitle, pUrlStr)
+					fmt.Printf("[Presets] Stored SqueezePlay player %s stream to Preset %d (current track): %s (%s)\n", playerId, presetNum, presetTitle, pUrlStr)
 					publishPresetStored(playerId, presetNum)
 				} else {
 					fmt.Printf("[Presets] Cannot store Preset %d: no item parameter and player is not playing anything\n", presetNum)
