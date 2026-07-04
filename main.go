@@ -2112,8 +2112,9 @@ type CachedImage struct {
 }
 
 var (
-	imageCacheMu sync.RWMutex
-	imageCache   = make(map[string]CachedImage)
+	imageCacheMu    sync.RWMutex
+	imageCache      = make(map[string]CachedImage)
+	cacheTotalBytes = 0
 )
 
 func handleImageProxy(w http.ResponseWriter, r *http.Request) {
@@ -2177,18 +2178,26 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 
 	ct := resp.Header.Get("Content-Type")
 
-	// Cache the image
+	// Cache the image under a strict 2MB memory budget
 	imageCacheMu.Lock()
-	if len(imageCache) >= 256 {
-		imageCache = make(map[string]CachedImage) // Self-cleaning eviction
+	for cacheTotalBytes+len(bodyBytes) > 2*1024*1024 && len(imageCache) > 0 {
+		var evictKey string
+		for k := range imageCache {
+			evictKey = k
+			break // Pseudo-random eviction based on map order
+		}
+		cacheTotalBytes -= len(imageCache[evictKey].Body)
+		delete(imageCache, evictKey)
 	}
-	imageCache[u] = CachedImage{
-		Body:        bodyBytes,
-		ContentType: ct,
+	if cacheTotalBytes+len(bodyBytes) <= 2*1024*1024 {
+		imageCache[u] = CachedImage{
+			Body:        bodyBytes,
+			ContentType: ct,
+		}
+		cacheTotalBytes += len(bodyBytes)
+		fmt.Printf("[ImageProxy] Cached new image: %s, size=%d bytes, cache total=%d bytes\n", u, len(bodyBytes), cacheTotalBytes)
 	}
 	imageCacheMu.Unlock()
-
-	fmt.Printf("[ImageProxy] Cached new image: %s, size=%d bytes\n", u, len(bodyBytes))
 
 	if ct != "" {
 		w.Header().Set("Content-Type", ct)
