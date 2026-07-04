@@ -733,6 +733,7 @@ func handleButtonPress(playerId string, btnName string) {
 				pb.PlayingDesc = item.Subtext
 				pb.PlayingIcon = item.Icon
 				pb.PlayingURL = item.URL
+				pb.StationName = item.Title
 				pb.Mu.Unlock()
 
 				go runURLStream(conn, item.URL, pb)
@@ -3235,6 +3236,7 @@ func buildPlaylistResponse(respClid, playerId string, cmdArr []interface{}, m *S
 	desc := pb.PlayingDesc
 	icon := pb.PlayingIcon
 	urlStr := pb.PlayingURL
+	stationName := pb.StationName
 	pb.Mu.Unlock()
 
 	var playlistLoop []interface{}
@@ -3246,7 +3248,7 @@ func buildPlaylistResponse(respClid, playerId string, cmdArr []interface{}, m *S
 				"track":       title,
 				"artist":      desc,
 				"album":       desc,
-				"text":        title,
+				"text":        stationName,
 				"artwork_url": icon,
 				"icon":        icon,
 				"icon-id":     icon,
