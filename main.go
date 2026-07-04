@@ -243,8 +243,10 @@ func fetchPlaylistOrTuneIn(urlStr string) string {
 			strings.Contains(lowerU, "ad_") ||
 			strings.Contains(lowerU, "advert")
 		if isAd {
+		   	fmt.Printf("Removing unwanted url: %s\n", u)
 			continue
 		}
+		fmt.Printf("Adding wanted url: %s\n", u)
 		cleanUrls = append(cleanUrls, u)
 	}
 
@@ -694,7 +696,14 @@ func handleButtonPress(playerId string, btnName string) {
 
 	var presetNum int
 	var action string
+	isValidPreset := false
 	if n, err := fmt.Sscanf(btnName, "preset_%d.%s", &presetNum, &action); err == nil && n == 2 {
+		isValidPreset = true
+	} else if n, err := fmt.Sscanf(btnName, "%d.%s", &presetNum, &action); err == nil && n == 2 {
+		isValidPreset = true
+	}
+
+	if isValidPreset {
 		pb := getPlayerPlayback(playerId)
 		if action == "hold" {
 			pb.Mu.Lock()
@@ -716,6 +725,7 @@ func handleButtonPress(playerId string, btnName string) {
 				presetsMu.Unlock()
 				savePresets()
 				fmt.Printf("[Button] Stored player %s stream to Preset %d: %s (%s)\n", playerId, presetNum, title, urlStr)
+				publishPresetStored(playerId, presetNum)
 			} else {
 				fmt.Printf("[Button] Cannot store Preset %d: player is not playing anything\n", presetNum)
 			}
@@ -768,28 +778,47 @@ func handleJiveFavorites(respClid, playerId string, cmdArr []interface{}, params
 		keyStr := req.Params["key"]
 		var presetNum int
 		if _, err := fmt.Sscanf(keyStr, "%d", &presetNum); err == nil && presetNum >= 0 && presetNum <= 9 {
-			pb := getPlayerPlayback(playerId)
-			pb.Mu.Lock()
-			playing := pb.Playing
-			title := pb.PlayingTitle
-			desc := pb.PlayingDesc
-			icon := pb.PlayingIcon
-			urlStr := pb.PlayingURL
-			pb.Mu.Unlock()
+			urlStr := req.Params["favorites_url"]
+			title := req.Params["favorites_title"]
+			icon := req.Params["icon"]
 
-			if playing && urlStr != "" {
+			if urlStr != "" && title != "" {
 				presetsMu.Lock()
 				presets[presetNum] = PresetItem{
 					Title:   title,
-					Subtext: desc,
+					Subtext: "",
 					Icon:    icon,
 					URL:     urlStr,
 				}
 				presetsMu.Unlock()
 				savePresets()
-				fmt.Printf("[Presets] Stored SqueezePlay player %s stream to Preset %d: %s (%s)\n", playerId, presetNum, title, urlStr)
+				fmt.Printf("[Presets] Stored SqueezePlay player %s stream to Preset %d (from browse): %s (%s)\n", playerId, presetNum, title, urlStr)
+				publishPresetStored(playerId, presetNum)
 			} else {
-				fmt.Printf("[Presets] Cannot store Preset %d: player is not playing anything\n", presetNum)
+				pb := getPlayerPlayback(playerId)
+				pb.Mu.Lock()
+				playing := pb.Playing
+				pTitle := pb.PlayingTitle
+				pDesc := pb.PlayingDesc
+				pIcon := pb.PlayingIcon
+				pUrlStr := pb.PlayingURL
+				pb.Mu.Unlock()
+
+				if playing && pUrlStr != "" {
+					presetsMu.Lock()
+					presets[presetNum] = PresetItem{
+						Title:   pTitle,
+						Subtext: pDesc,
+						Icon:    pIcon,
+						URL:     pUrlStr,
+					}
+					presetsMu.Unlock()
+					savePresets()
+					fmt.Printf("[Presets] Stored SqueezePlay player %s stream to Preset %d (current track): %s (%s)\n", playerId, presetNum, pTitle, pUrlStr)
+					publishPresetStored(playerId, presetNum)
+				} else {
+					fmt.Printf("[Presets] Cannot store Preset %d: no item parameter and player is not playing anything\n", presetNum)
+				}
 			}
 		}
 	}
@@ -1008,9 +1037,10 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 			fmt.Printf("[Stream] http get error: %v\n", result.err)
 			return
 		}
-		defer result.reader.Close()
+		trackR := &trackingReader{r: result.reader, count: 0}
+		defer trackR.Close()
 		icyReader := &IcyReader{
-			reader:      result.reader,
+			reader:      trackR,
 			metaInt:     result.icyMetaInt,
 			bytesToNext: result.icyMetaInt,
 			onMetadata: func(metaStr string) {
@@ -1059,10 +1089,26 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 			}
 			if err != nil {
 				if err == io.EOF {
-					fmt.Printf("[Stream] stream ended, total written: %d bytes\n", totalWritten)
+					fmt.Printf("[Stream] upstream EOF at offset %d, attempting to resume...\n", trackR.count)
+					newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
+					if resumeErr == nil && newReader != nil {
+						fmt.Printf("[Stream] successfully resumed upstream at offset %d\n", trackR.count)
+						trackR.r.Close() // Close previous reader
+						trackR.r = newReader
+						continue
+					}
+					fmt.Printf("[Stream] stream ended (cannot resume or EOF): total written %d bytes, resumeErr: %v\n", totalWritten, resumeErr)
 					return
 				}
-				fmt.Printf("[Stream] read error: %v\n", err)
+				fmt.Printf("[Stream] read error: %v, attempting to resume...\n", err)
+				newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
+				if resumeErr == nil && newReader != nil {
+					fmt.Printf("[Stream] successfully resumed upstream after error at offset %d\n", trackR.count)
+					trackR.r.Close() // Close previous reader
+					trackR.r = newReader
+					continue
+				}
+				fmt.Printf("[Stream] read error final: %v, resumeErr: %v\n", err, resumeErr)
 				return
 			}
 		}
@@ -2076,7 +2122,10 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 	re := regexp.MustCompile(`_([0-9]+x[0-9]+)(_[a-z])?(\.[a-zA-Z0-9]+)`)
 	u = re.ReplaceAllString(u, "$3")
 
-	resp, err := http.Get(u)
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+	resp, err := client.Get(u)
 	if err != nil {
 		handleArtwork(w, r)
 		return
@@ -2437,14 +2486,22 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 			respClid = clid
 		}
 
-		// Check if this is a serverstatus subscription and push event
+		// Check if this is a serverstatus or status subscription and push event
 		if req.Data != nil {
+			fmt.Printf("[CometD] Slim subscribe: response=%q request=%+v\n", req.Data["response"], req.Data["request"])
 			if requestArr, ok := req.Data["request"].([]interface{}); ok && len(requestArr) >= 2 {
 				if args, ok := requestArr[1].([]interface{}); ok && len(args) > 0 {
-					if cmd, ok := args[0].(string); ok && cmd == "serverstatus" {
-						done := make(chan struct{}, 1)
-						pushServerStatus(respClid, req.Id, m, done)
-						<-done
+					if cmd, ok := args[0].(string); ok {
+						if cmd == "serverstatus" {
+							done := make(chan struct{}, 1)
+							pushServerStatus(respClid, req.Id, m, done)
+							<-done
+						} else if cmd == "status" {
+							go func() {
+								time.Sleep(50 * time.Millisecond)
+								publishPlayerStatus()
+							}()
+						}
 					}
 				}
 			}
@@ -2809,6 +2866,19 @@ func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
 	sc.pendingMu.Unlock()
 }
 
+func getBasePresetActions() map[string]interface{} {
+	actions := map[string]interface{}{}
+	for preset := 0; preset <= 9; preset++ {
+		key := fmt.Sprintf("set-preset-%d", preset)
+		actions[key] = map[string]interface{}{
+			"player":      0,
+			"cmd":         []interface{}{"jivefavorites", "set_preset", fmt.Sprintf("key:%d", preset)},
+			"itemsParams": "presetParams",
+		}
+	}
+	return actions
+}
+
 func handleRadioSubmenu(respClid, playerId string, cmdReq CLIRequest, m *ServerMetadata) {
 	sc := getStreamingClient(respClid)
 	if sc == nil {
@@ -2863,6 +2933,7 @@ func handleRadioSubmenu(respClid, playerId string, cmdReq CLIRequest, m *ServerM
 
 	var items []map[string]interface{}
 	session.Mu.Lock()
+	hasPlayable := false
 
 	for _, out := range feedItems {
 		itemID := fmt.Sprintf("item_%d", session.NextID)
@@ -2886,12 +2957,21 @@ func handleRadioSubmenu(respClid, playerId string, cmdReq CLIRequest, m *ServerM
 				URL:     out.URL,
 			}
 
+			presetParams := map[string]interface{}{
+				"favorites_url":   out.URL,
+				"favorites_title": out.Text,
+				"favorites_type":  "audio",
+				"icon":            cleanIconURL(out.Image),
+			}
+			hasPlayable = true
+
 			items = append(items, map[string]interface{}{
-				"id":      itemID,
-				"text":    out.Text,
-				"subtext": subtext,
-				"type":    "audio",
-				"icon":    cleanIconURL(out.Image),
+				"id":           itemID,
+				"text":         out.Text,
+				"subtext":      subtext,
+				"type":         "audio",
+				"icon":         cleanIconURL(out.Image),
+				"presetParams": presetParams,
 				"actions": map[string]interface{}{
 					"go": map[string]interface{}{
 						"cmd": []interface{}{"radios", "playlist", "play"},
@@ -2953,6 +3033,11 @@ func handleRadioSubmenu(respClid, playerId string, cmdReq CLIRequest, m *ServerM
 		"count":     len(items),
 		"offset":    0,
 		"item_loop": items,
+	}
+	if hasPlayable {
+		data["base"] = map[string]interface{}{
+			"actions": getBasePresetActions(),
+		}
 	}
 
 	sc.pendingMu.Lock()
@@ -3053,6 +3138,49 @@ func buildMenuResponse(respClid, playerId string, m *ServerMetadata) {
 	fmt.Printf("[Menu] prepared menu response for player=%s clientId=%s\n", playerId, respClid)
 }
 
+func publishPresetStored(playerId string, presetNum int) {
+	pb := getPlayerPlayback(playerId)
+	pb.Mu.Lock()
+	icon := pb.PlayingIcon
+	title := pb.PlayingTitle
+	pb.Mu.Unlock()
+
+	if icon == "" {
+		icon = "/plugins/TuneIn/html/images/radiolocal.png"
+	}
+
+	displayData := map[string]interface{}{
+		"display": map[string]interface{}{
+			"type":     "mixed",
+			"duration": 2000,
+			"style":    "favorite",
+			"text": []interface{}{
+				"Preset Stored",
+				fmt.Sprintf("Preset #%d: %s", presetNum, title),
+			},
+			"icon":    icon,
+			"icon-id": icon,
+		},
+	}
+
+	streamingClientsMu.Lock()
+	defer streamingClientsMu.Unlock()
+
+	for clid, sc := range streamingClients {
+		select {
+		case sc.events <- []interface{}{
+			map[string]interface{}{
+				"channel": "/" + clid + "/slim/displaystatus/" + playerId,
+				"data":    displayData,
+			},
+		}:
+			fmt.Printf("[DisplayStatus] Published preset stored popup to client=%s player=%s: Preset #%d stored\n", clid, playerId, presetNum)
+		default:
+			// Avoid blocking
+		}
+	}
+}
+
 func publishPlayerStatus() {
 	m := globalServerMetadata
 	if m == nil {
@@ -3060,9 +3188,13 @@ func publishPlayerStatus() {
 	}
 
 	streamingClientsMu.Lock()
-	defer streamingClientsMu.Unlock()
+	clientsCopy := make(map[string]*StreamingClient, len(streamingClients))
+	for k, v := range streamingClients {
+		clientsCopy[k] = v
+	}
+	streamingClientsMu.Unlock()
 
-	for clid, sc := range streamingClients {
+	for clid, sc := range clientsCopy {
 		players := getConnectedPlayers()
 		for _, p := range players {
 			pb := getPlayerPlayback(p.MAC)
@@ -3107,6 +3239,11 @@ func publishPlayerStatus() {
 
 			statusData := map[string]interface{}{
 				"player_name":        p.Name,
+				"name":               p.Name,
+				"model":              p.Model,
+				"uuid":               p.UUID,
+				"connected":          1,
+				"player_connected":   1,
 				"player_ip":          m.IPAddress,
 				"mode":               mode,
 				"power":              1,
@@ -3116,19 +3253,18 @@ func publishPlayerStatus() {
 				"playlist_cur_index": 0,
 				"playlist_tracks":    count,
 				"count":              count,
-				"item_loop":          itemLoop,
 				"remote":             remote,
 				"current_title":      currentTitle,
+			}
+			if playing {
+				statusData["item_loop"] = itemLoop
+				statusData["playlist_loop"] = itemLoop
 			}
 
 			select {
 			case sc.events <- []interface{}{
 				map[string]interface{}{
-					"channel": "/" + clid + "/slim/playerstatus",
-					"data":    statusData,
-				},
-				map[string]interface{}{
-					"channel": "/slim/playerstatus/" + p.MAC,
+					"channel": "/" + clid + "/slim/playerstatus/" + p.MAC,
 					"data":    statusData,
 				},
 			}:
@@ -3150,9 +3286,13 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 
 	players := getConnectedPlayers()
 	playerName := ""
+	playerModel := ""
+	playerUUID := ""
 	for _, p := range players {
 		if p.MAC == playerId {
 			playerName = p.Name
+			playerModel = p.Model
+			playerUUID = p.UUID
 			break
 		}
 	}
@@ -3202,6 +3342,11 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 
 	data := map[string]interface{}{
 		"player_name":        playerName,
+		"name":               playerName,
+		"model":              playerModel,
+		"uuid":               playerUUID,
+		"connected":          1,
+		"player_connected":   1,
 		"player_ip":          m.IPAddress,
 		"mode":               mode,
 		"power":              1,
@@ -3211,9 +3356,12 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 		"playlist_cur_index": 0,
 		"playlist_tracks":    count,
 		"count":              count,
-		"item_loop":          itemLoop,
 		"remote":             remote,
 		"current_title":      currentTitle,
+	}
+	if playing {
+		data["item_loop"] = itemLoop
+		data["playlist_loop"] = itemLoop
 	}
 
 	sc.pendingMu.Lock()
@@ -3655,4 +3803,50 @@ func performNTPSync() error {
 	}
 
 	return nil
+}
+
+type trackingReader struct {
+	r     io.ReadCloser
+	count int64
+}
+
+func (tr *trackingReader) Read(p []byte) (int, error) {
+	n, err := tr.r.Read(p)
+	tr.count += int64(n)
+	return n, err
+}
+
+func (tr *trackingReader) Close() error {
+	return tr.r.Close()
+}
+
+func resumeUpstream(streamURL string, offset int64) (io.ReadCloser, int, error) {
+	req, err := http.NewRequest("GET", streamURL, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("Icy-MetaData", "1")
+	req.Header.Set("User-Agent", "SlimProto/1.0")
+	req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if resp.StatusCode == http.StatusPartialContent {
+		icyMetaInt := 0
+		if icyMetaIntStr := resp.Header.Get("icy-metaint"); icyMetaIntStr != "" {
+			if mi, err := strconv.Atoi(icyMetaIntStr); err == nil {
+				icyMetaInt = mi
+			}
+		}
+		return resp.Body, icyMetaInt, nil
+	}
+
+	resp.Body.Close()
+	return nil, 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 }
