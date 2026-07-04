@@ -349,6 +349,7 @@ type PlayerPlaybackState struct {
 	PlayingIcon  string
 	PlayingURL   string
 	StationName  string
+	StationDesc  string
 }
 
 var (
@@ -709,10 +710,10 @@ func handleButtonPress(playerId string, btnName string) {
 			pb.Mu.Lock()
 			playing := pb.Playing
 			title := pb.PlayingTitle
-			desc := pb.PlayingDesc
 			icon := pb.PlayingIcon
 			urlStr := pb.PlayingURL
 			stationName := pb.StationName
+			stationDesc := pb.StationDesc
 			pb.Mu.Unlock()
 
 			if playing && urlStr != "" {
@@ -723,7 +724,7 @@ func handleButtonPress(playerId string, btnName string) {
 				presetsMu.Lock()
 				presets[presetNum] = PresetItem{
 					Title:   presetTitle,
-					Subtext: desc,
+					Subtext: stationDesc,
 					Icon:    icon,
 					URL:     urlStr,
 				}
@@ -749,6 +750,7 @@ func handleButtonPress(playerId string, btnName string) {
 				pb.PlayingIcon = item.Icon
 				pb.PlayingURL = item.URL
 				pb.StationName = item.Title
+				pb.StationDesc = item.Subtext
 				pb.Mu.Unlock()
 
 				go runURLStream(conn, item.URL, pb)
@@ -804,10 +806,10 @@ func handleJiveFavorites(respClid, playerId string, cmdArr []interface{}, params
 				pb.Mu.Lock()
 				playing := pb.Playing
 				pTitle := pb.PlayingTitle
-				pDesc := pb.PlayingDesc
 				pIcon := pb.PlayingIcon
 				pUrlStr := pb.PlayingURL
 				stationName := pb.StationName
+				stationDesc := pb.StationDesc
 				pb.Mu.Unlock()
 
 				if playing && pUrlStr != "" {
@@ -818,7 +820,7 @@ func handleJiveFavorites(respClid, playerId string, cmdArr []interface{}, params
 					presetsMu.Lock()
 					presets[presetNum] = PresetItem{
 						Title:   presetTitle,
-						Subtext: pDesc,
+						Subtext: stationDesc,
 						Icon:    pIcon,
 						URL:     pUrlStr,
 					}
@@ -1059,6 +1061,9 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 			pb.StationName = result.icyName
 			if pb.PlayingTitle == "" || strings.HasPrefix(pb.PlayingTitle, "http://") || strings.HasPrefix(pb.PlayingTitle, "https://") {
 				pb.PlayingTitle = result.icyName
+			}
+			if pb.StationDesc == "" && result.icyDesc != "" {
+				pb.StationDesc = result.icyDesc
 			}
 			if pb.PlayingDesc == "" && result.icyDesc != "" {
 				pb.PlayingDesc = result.icyDesc
@@ -3166,11 +3171,13 @@ func handleRadioPlay(respClid, playerId string, cmdReq CLIRequest) {
 		pb.PlayingDesc = meta.Subtext
 		pb.PlayingIcon = meta.Icon
 		pb.StationName = meta.Title
+		pb.StationDesc = meta.Subtext
 	} else {
 		pb.PlayingTitle = streamURL
 		pb.PlayingDesc = ""
 		pb.PlayingIcon = ""
 		pb.StationName = streamURL
+		pb.StationDesc = ""
 	}
 	pb.Mu.Unlock()
 
@@ -3233,6 +3240,7 @@ func publishPresetStored(playerId string, presetNum int) {
 	icon := pb.PlayingIcon
 	title := pb.PlayingTitle
 	stationName := pb.StationName
+	stationDesc := pb.StationDesc
 	pb.Mu.Unlock()
 
 	presetTitle := stationName
@@ -3244,17 +3252,22 @@ func publishPresetStored(playerId string, presetNum int) {
 		icon = "/plugins/TuneIn/html/images/radiolocal.png"
 	}
 
+	textLines := []interface{}{
+		"Preset Stored",
+		fmt.Sprintf("Preset #%d: %s", presetNum, presetTitle),
+	}
+	if stationDesc != "" {
+		textLines = append(textLines, stationDesc)
+	}
+
 	displayData := map[string]interface{}{
 		"display": map[string]interface{}{
 			"type":     "mixed",
 			"duration": 2000,
 			"style":    "favorite",
-			"text": []interface{}{
-				"Preset Stored",
-				fmt.Sprintf("Preset #%d: %s", presetNum, presetTitle),
-			},
-			"icon":    icon,
-			"icon-id": icon,
+			"text":     textLines,
+			"icon":     icon,
+			"icon-id":  icon,
 		},
 	}
 
