@@ -3213,7 +3213,13 @@ func publishPresetStored(playerId string, presetNum int) {
 	pb.Mu.Lock()
 	icon := pb.PlayingIcon
 	title := pb.PlayingTitle
+	stationName := pb.StationName
 	pb.Mu.Unlock()
+
+	presetTitle := stationName
+	if presetTitle == "" {
+		presetTitle = title
+	}
 
 	if icon == "" {
 		icon = "/plugins/TuneIn/html/images/radiolocal.png"
@@ -3226,7 +3232,7 @@ func publishPresetStored(playerId string, presetNum int) {
 			"style":    "favorite",
 			"text": []interface{}{
 				"Preset Stored",
-				fmt.Sprintf("Preset #%d: %s", presetNum, title),
+				fmt.Sprintf("Preset #%d: %s", presetNum, presetTitle),
 			},
 			"icon":    icon,
 			"icon-id": icon,
