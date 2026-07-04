@@ -943,12 +943,16 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 		if h := resp.Header.Get("Content-Type"); h != "" {
 			ct = h
 		}
-		fmt.Printf("[Stream] upstream connected in %v, status=%s, content-type=%s, icy-metaint=%d\n", time.Since(streamStartTime), resp.Status, ct, icyMetaInt)
+		icyName := resp.Header.Get("icy-name")
+		icyDesc := resp.Header.Get("icy-description")
+		fmt.Printf("[Stream] upstream connected in %v, status=%s, content-type=%s, icy-metaint=%d, icy-name=%s\n", time.Since(streamStartTime), resp.Status, ct, icyMetaInt, icyName)
 		fetchCh <- streamFetchResult{
 			reader:      resp.Body,
 			contentType: ct,
 			httpStatus:  resp.Status,
 			icyMetaInt:  icyMetaInt,
+			icyName:     icyName,
+			icyDesc:     icyDesc,
 		}
 	}()
 
@@ -1048,6 +1052,19 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 		if result.err != nil {
 			fmt.Printf("[Stream] http get error: %v\n", result.err)
 			return
+		}
+
+		if pb != nil && result.icyName != "" {
+			pb.Mu.Lock()
+			pb.StationName = result.icyName
+			if pb.PlayingTitle == "" || strings.HasPrefix(pb.PlayingTitle, "http://") || strings.HasPrefix(pb.PlayingTitle, "https://") {
+				pb.PlayingTitle = result.icyName
+			}
+			if pb.PlayingDesc == "" && result.icyDesc != "" {
+				pb.PlayingDesc = result.icyDesc
+			}
+			pb.Mu.Unlock()
+			publishPlayerStatus()
 		}
 		trackR := &trackingReader{r: result.reader, count: 0}
 		defer trackR.Close()
@@ -1272,6 +1289,8 @@ type streamFetchResult struct {
 	contentType string
 	httpStatus  string
 	icyMetaInt  int
+	icyName     string
+	icyDesc     string
 	err         error
 }
 
