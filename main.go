@@ -898,7 +898,6 @@ func parseIcyMetadata(metaStr string) (string, string) {
 // runURLStream starts streaming the given URL to the player.
 // Runs entirely in a new goroutine (called from handleButtonPress and direct HTTP).
 func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
-	origStreamURL := streamURL
 	streamURL = resolveStreamURL(streamURL)
 	streamStartTime := time.Now()
 
@@ -1005,14 +1004,17 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 		defer listener.Close()
 		defer func() {
 			streamStopMu.Lock()
-			if streamStop == thisStop {
-				close(streamStop)
-				streamStop = nil
+			isActive := (streamStop == thisStop)
+			if isActive {
+				if streamStop != nil {
+					close(streamStop)
+					streamStop = nil
+				}
 			}
 			streamStopMu.Unlock()
 			if pb != nil {
 				pb.Mu.Lock()
-				if pb.PlayingURL == origStreamURL || pb.PlayingURL == streamURL {
+				if isActive {
 					pb.Playing = false
 				}
 				pb.Mu.Unlock()
