@@ -3249,6 +3249,8 @@ func publishPlayerStatus() {
 				"playlist_cur_index": 0,
 				"playlist_tracks":    count,
 				"count":              count,
+				"playlist shuffle":   0,
+				"playlist repeat":    0,
 				"remote":             remote,
 				"current_title":      currentTitle,
 			}
@@ -3352,6 +3354,8 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 		"playlist_cur_index": 0,
 		"playlist_tracks":    count,
 		"count":              count,
+		"playlist shuffle":   0,
+		"playlist repeat":    0,
 		"remote":             remote,
 		"current_title":      currentTitle,
 	}
