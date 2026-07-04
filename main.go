@@ -149,7 +149,15 @@ func resolveStreamURL(streamURL string) string {
 	for depth := 0; depth < 5; depth++ {
 		lowerURL := strings.ToLower(streamURL)
 		isTuneIn := strings.Contains(lowerURL, "tune.ashx") || strings.Contains(lowerURL, "tunein.com") || strings.Contains(lowerURL, "radiotime.com")
-		isPlaylist := strings.HasSuffix(lowerURL, ".m3u") || strings.HasSuffix(lowerURL, ".m3u8") || strings.HasSuffix(lowerURL, ".pls")
+		
+		parsed, err := url.Parse(streamURL)
+		var path string
+		if err == nil {
+			path = strings.ToLower(parsed.Path)
+		} else {
+			path = lowerURL
+		}
+		isPlaylist := strings.HasSuffix(path, ".m3u") || strings.HasSuffix(path, ".m3u8") || strings.HasSuffix(path, ".pls") || strings.Contains(path, "/playlist/")
 
 		if isTuneIn || isPlaylist {
 			resolved := fetchPlaylistOrTuneIn(streamURL)
@@ -803,6 +811,7 @@ func parseIcyMetadata(metaStr string) (string, string) {
 // runURLStream starts streaming the given URL to the player.
 // Runs entirely in a new goroutine (called from handleButtonPress and direct HTTP).
 func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
+	origStreamURL := streamURL
 	streamURL = resolveStreamURL(streamURL)
 	streamStartTime := time.Now()
 
@@ -916,7 +925,7 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 			streamStopMu.Unlock()
 			if pb != nil {
 				pb.Mu.Lock()
-				if pb.PlayingURL == streamURL {
+				if pb.PlayingURL == origStreamURL || pb.PlayingURL == streamURL {
 					pb.Playing = false
 				}
 				pb.Mu.Unlock()
@@ -2266,7 +2275,6 @@ func handleCometdStreaming(w http.ResponseWriter, clientId string, initialResps 
 
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	lifetimeLimit := time.After(180 * time.Second)
 
 	for {
 		select {
@@ -2287,9 +2295,6 @@ func handleCometdStreaming(w http.ResponseWriter, clientId string, initialResps 
 				return
 			}
 			flusher.Flush()
-		case <-lifetimeLimit:
-			fmt.Printf("[CometD] streaming connection lifetime limit reached for clientId=%s\n", clientId)
-			return
 		}
 	}
 }
@@ -3450,7 +3455,7 @@ func listenUDP4(port int) (*net.UDPConn, error) {
 
 	saddr := &syscall.SockaddrInet4{
 		Port: port,
-		Addr: [4]byte{127, 0, 0, 1},
+		Addr: [4]byte{0, 0, 0, 0},
 	}
 	if err := syscall.Bind(fd, saddr); err != nil {
 		syscall.Close(fd)
@@ -3529,15 +3534,16 @@ func listenMulticastUDP4(mcastGroup string, port int) (*net.UDPConn, error) {
 
 func syncTimeWithNTP() {
 	go func() {
-		// Sync time on startup and then periodically every hour
+		// Sync time on startup and then periodically
 		for {
 			err := performNTPSync()
 			if err != nil {
-				fmt.Printf("[NTP] time sync failed: %v\n", err)
+				fmt.Printf("[NTP] time sync failed: %v, retrying in 30 seconds...\n", err)
+				time.Sleep(30 * time.Second)
 			} else {
 				fmt.Printf("[NTP] time sync successful, system clock updated\n")
+				time.Sleep(1 * time.Hour)
 			}
-			time.Sleep(1 * time.Hour)
 		}
 	}()
 }
