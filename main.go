@@ -2122,17 +2122,23 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 	re := regexp.MustCompile(`_([0-9]+x[0-9]+)(_[a-z])?(\.[a-zA-Z0-9]+)`)
 	u = re.ReplaceAllString(u, "$3")
 
+	fmt.Printf("[ImageProxy] Fetching remote URL: %s (original: %s)\n", u, r.URL.Query().Get("u"))
+
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
 	resp, err := client.Get(u)
 	if err != nil {
+		fmt.Printf("[ImageProxy] Fetch error: %v\n", err)
 		handleArtwork(w, r)
 		return
 	}
 	defer resp.Body.Close()
 
-	if ct := resp.Header.Get("Content-Type"); ct != "" {
+	ct := resp.Header.Get("Content-Type")
+	fmt.Printf("[ImageProxy] Response status: %s, Content-Type: %s, Length: %s\n", resp.Status, ct, resp.Header.Get("Content-Length"))
+
+	if ct != "" {
 		w.Header().Set("Content-Type", ct)
 	}
 	w.WriteHeader(resp.StatusCode)
@@ -3087,17 +3093,7 @@ func handleRadioPlay(respClid, playerId string, cmdReq CLIRequest) {
 	fmt.Printf("[Radio] Tuning to station ID=%s, URL=%s\n", itemID, streamURL)
 	go runURLStream(conn, streamURL, pb)
 
-	sc := getStreamingClient(respClid)
-	if sc != nil {
-		data := map[string]interface{}{
-			"count":     0,
-			"offset":    0,
-			"item_loop": []interface{}{},
-		}
-		sc.pendingMu.Lock()
-		sc.pendingResponse = data
-		sc.pendingMu.Unlock()
-	}
+	buildStatusResponse(respClid, playerId, nil, globalServerMetadata)
 
 	go func() {
 		time.Sleep(150 * time.Millisecond)
