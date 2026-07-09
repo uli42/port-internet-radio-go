@@ -753,7 +753,7 @@ func handleButtonPress(playerId string, btnName string) {
 				pb.StationDesc = item.Subtext
 				pb.Mu.Unlock()
 
-				go runURLStream(conn, item.URL, pb)
+				go runURLStream(conn, item.URL, pb, playerId)
 
 				go func() {
 					time.Sleep(150 * time.Millisecond)
@@ -904,7 +904,7 @@ func parseIcyMetadata(metaStr string) (string, string) {
 
 // runURLStream starts streaming the given URL to the player.
 // Runs entirely in a new goroutine (called from handleButtonPress and direct HTTP).
-func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
+func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, playerId string) {
 	streamURL = resolveStreamURL(streamURL)
 	streamStartTime := time.Now()
 
@@ -1053,6 +1053,7 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 		result := <-fetchCh
 		if result.err != nil {
 			LogError("Stream", "http get error: %v", result.err)
+			publishStreamError(playerId, conn, result.err)
 			return
 		}
 
@@ -1113,6 +1114,7 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 				}
 				if _, werr := playerConn.Write(buf[:n]); werr != nil {
 					LogError("Stream", "write error: %v", werr)
+					publishStreamError(playerId, conn, werr)
 					return
 				}
 				totalWritten += int64(n)
@@ -1134,18 +1136,19 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState) {
 					LogDebug("Stream", "stream ended (cannot resume or EOF): total written %d bytes, resumeErr: %v", totalWritten, resumeErr)
 					return
 				}
-				LogError("Stream", "read error: %v, attempting to resume...", err)
-				newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
-				if resumeErr == nil && newReader != nil {
-					LogError("Stream", "successfully resumed upstream after error at offset %d", trackR.count)
-					trackR.r.Close() // Close previous reader
-					trackR.r = newReader
-					continue
-				}
-				LogError("Stream", "read error final: %v, resumeErr: %v", err, resumeErr)
-				return
-			}
+		LogError("Stream", "read error: %v, attempting to resume...", err)
+		newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
+		if resumeErr == nil && newReader != nil {
+			LogError("Stream", "successfully resumed upstream after error at offset %d", trackR.count)
+			trackR.r.Close() // Close previous reader
+			trackR.r = newReader
+			continue
 		}
+		LogError("Stream", "read error final: %v, resumeErr: %v", err, resumeErr)
+		publishStreamError(playerId, conn, err)
+		return
+	}
+}
 	}()
 }
 
@@ -1305,6 +1308,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		streamURL = resolveStreamURL(streamURL)
 	}
 	streamFile := r.URL.Query().Get("file")
+	playerId := r.URL.Query().Get("player")
 
 	if streamURL == "" && streamFile == "" {
 		http.Error(w, "missing url or file parameter", http.StatusBadRequest)
@@ -1458,11 +1462,12 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		} else {
 			// Wait for the upstream fetch started in the handler
 			LogInfo("Stream", "t=%s waiting for upstream fetch...", time.Since(streamStartTime))
-			result := <-fetchCh
-			if result.err != nil {
-				LogError("Stream", "http get error: %v", result.err)
-				return
-			}
+		result := <-fetchCh
+		if result.err != nil {
+			LogError("Stream", "http get error: %v", result.err)
+			publishStreamError(playerId, conn, result.err)
+			return
+		}
 			defer result.reader.Close()
 			reader = result.reader
 			LogInfo("Stream", "t=%s upstream ready, proxying %s", time.Since(streamStartTime), streamURL)
@@ -1489,6 +1494,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 				}
 				if _, werr := playerConn.Write(buf[:n]); werr != nil {
 					LogError("Stream", "write error: %v", werr)
+					publishStreamError(playerId, conn, werr)
 					return
 				}
 				totalWritten += int64(n)
@@ -1502,10 +1508,11 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 					LogDebug("Stream", "stream ended, total written: %d bytes", totalWritten)
 					return
 				}
-				LogError("Stream", "read error: %v", err)
-				return
-			}
-		}
+		LogError("Stream", "read error: %v", err)
+		publishStreamError(playerId, conn, err)
+		return
+	}
+}
 	}()
 
 	if streamURL != "" {
@@ -3190,7 +3197,7 @@ func handleRadioPlay(respClid, playerId string, cmdReq CLIRequest) {
 	}
 
 	LogInfo("Radio", "Tuning to station ID=%s, URL=%s", itemID, streamURL)
-	go runURLStream(conn, streamURL, pb)
+	go runURLStream(conn, streamURL, pb, playerId)
 
 	buildStatusResponse(respClid, playerId, nil, globalServerMetadata)
 
@@ -3284,6 +3291,52 @@ func publishPresetStored(playerId string, presetNum int) {
 			LogInfo("DisplayStatus", "Published preset stored popup to client=%s player=%s: Preset #%d stored", clid, playerId, presetNum)
 		default:
 			// Avoid blocking
+		}
+	}
+}
+
+func publishStreamError(playerId string, conn net.Conn, err error) {
+	errMsg := err.Error()
+	if len(errMsg) > 80 {
+		errMsg = errMsg[:80]
+	}
+
+	title := "Stream Error"
+	if strings.Contains(errMsg, "no such host") || strings.Contains(errMsg, "lookup ") {
+		title = "Station Offline"
+		errMsg = "Radio station is not available"
+	} else if strings.Contains(errMsg, "ICY") || strings.Contains(errMsg, "malformed HTTP") {
+		title = "Stream Error"
+		errMsg = "Server returned incompatible response"
+	}
+
+	sendStrm(conn, 0, 0, title, errMsg, "", 5000)
+
+	displayData := map[string]interface{}{
+		"display": map[string]interface{}{
+			"type":     "error",
+			"duration": 5000,
+			"style":    "error",
+			"text": []interface{}{
+				title,
+				errMsg,
+			},
+		},
+	}
+
+	streamingClientsMu.Lock()
+	defer streamingClientsMu.Unlock()
+
+	for clid, sc := range streamingClients {
+		select {
+		case sc.events <- []interface{}{
+			map[string]interface{}{
+				"channel": "/" + clid + "/slim/displaystatus/" + playerId,
+				"data":    displayData,
+			},
+		}:
+			LogInfo("DisplayStatus", "Published stream error popup to client=%s player=%s: %s - %s", clid, playerId, title, errMsg)
+		default:
 		}
 	}
 }
