@@ -3215,6 +3215,8 @@ func buildMenuResponse(respClid, playerId string, m *ServerMetadata) {
 	}
 
 	data := map[string]interface{}{
+		"count":     1,
+		"offset":    0,
 		"item_loop": []interface{}{
 			map[string]interface{}{
 				"id":     "opmlradio",
@@ -3397,27 +3399,28 @@ func publishPlayerStatus() {
 				}
 			}
 
-			statusData := map[string]interface{}{
-				"player_name":        p.Name,
-				"name":               p.Name,
-				"model":              p.Model,
-				"uuid":               p.UUID,
-				"connected":          1,
-				"player_connected":   1,
-				"player_ip":          m.IPAddress,
-				"mode":               mode,
-				"power":              1,
-				"time":               0,
-				"rate":               1,
-				"playlist_timestamp": time.Now().Unix(),
-				"playlist_cur_index": 0,
-				"playlist_tracks":    count,
-				"count":              count,
-				"playlist shuffle":   0,
-				"playlist repeat":    0,
-				"remote":             remote,
-				"current_title":      currentTitle,
-			}
+		statusData := map[string]interface{}{
+			"player_name":        p.Name,
+			"name":               p.Name,
+			"model":              p.Model,
+			"uuid":               p.UUID,
+			"connected":          1,
+			"player_connected":   1,
+			"player_ip":          m.IPAddress,
+			"mode":               mode,
+			"power":              1,
+			"time":               0,
+			"rate":               1,
+			"playlist_timestamp": time.Now().Unix(),
+			"playlist_cur_index": 0,
+			"playlist_tracks":    count,
+			"count":              count,
+			"offset":             0,
+			"playlist shuffle":   0,
+			"playlist repeat":    0,
+			"remote":             remote,
+			"current_title":      currentTitle,
+		}
 			if playing {
 				statusData["item_loop"] = itemLoop
 				statusData["playlist_loop"] = itemLoop
@@ -3518,6 +3521,7 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 		"playlist_cur_index": 0,
 		"playlist_tracks":    count,
 		"count":              count,
+		"offset":             0,
 		"playlist shuffle":   0,
 		"playlist repeat":    0,
 		"remote":             remote,
@@ -3576,6 +3580,7 @@ func buildPlaylistResponse(respClid, playerId string, cmdArr []interface{}, m *S
 	data := map[string]interface{}{
 		"playlist_loop": playlistLoop,
 		"count":         len(playlistLoop),
+		"offset":        0,
 	}
 
 	sc.pendingMu.Lock()
