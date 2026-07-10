@@ -740,12 +740,19 @@ func handleButtonPress(playerId string, btnName string, btnArg string) {
 		return
 	}
 
+	// Combine btnName and btnArg if action is passed separately
+	// e.g. btnName="1", btnArg="hold" -> "1.hold"
+	fullName := btnName
+	if btnArg != "" && !strings.Contains(btnName, ".") {
+		fullName = btnName + "." + btnArg
+	}
+
 	var presetNum int
 	var action string
 	isValidPreset := false
-	if n, err := fmt.Sscanf(btnName, "preset_%d.%s", &presetNum, &action); err == nil && n == 2 {
+	if n, err := fmt.Sscanf(fullName, "preset_%d.%s", &presetNum, &action); err == nil && n == 2 {
 		isValidPreset = true
-	} else if n, err := fmt.Sscanf(btnName, "%d.%s", &presetNum, &action); err == nil && n == 2 {
+	} else if n, err := fmt.Sscanf(fullName, "%d.%s", &presetNum, &action); err == nil && n == 2 {
 		isValidPreset = true
 	}
 
@@ -2856,8 +2863,11 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 							case "button":
 								if len(cmdArr) >= 2 {
 									btnName := ""
-									if s, ok := cmdArr[1].(string); ok {
-										btnName = s
+									switch v := cmdArr[1].(type) {
+									case string:
+										btnName = v
+									case float64:
+										btnName = fmt.Sprintf("%.0f", v)
 									}
 									btnArg := ""
 									if len(cmdArr) >= 3 {
