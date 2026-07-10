@@ -344,12 +344,14 @@ var (
 type PlayerPlaybackState struct {
 	Mu           sync.Mutex
 	Playing      bool
+	Paused       bool
 	PlayingTitle string
 	PlayingDesc  string
 	PlayingIcon  string
 	PlayingURL   string
 	StationName  string
 	StationDesc  string
+	StreamURL    string
 }
 
 var (
@@ -366,6 +368,46 @@ func getPlayerPlayback(mac string) *PlayerPlaybackState {
 		playerPlaybacks[mac] = pb
 	}
 	return pb
+}
+
+func pausePlayer(playerId string) {
+	playerId = normalizePlayerId(playerId)
+	pb := getPlayerPlayback(playerId)
+	pb.Mu.Lock()
+	pb.Playing = false
+	pb.Paused = true
+	pb.Mu.Unlock()
+	publishPlayerStatus()
+}
+
+func resumePlayer(playerId string, conn net.Conn) {
+	playerId = normalizePlayerId(playerId)
+	pb := getPlayerPlayback(playerId)
+	pb.Mu.Lock()
+	pb.Playing = true
+	pb.Paused = false
+	streamURL := pb.StreamURL
+	pb.Mu.Unlock()
+
+	if streamURL != "" && conn != nil {
+		LogInfo("Stream", "resume: restarting stream for player %s: %s", playerId, streamURL)
+		go runURLStream(conn, streamURL, pb, playerId)
+	} else if conn != nil && streamDataPort != 0 {
+		if err := sendStrmStop(conn); err != nil {
+			LogError("Stream", "resume sendStrmStop error: %v", err)
+		}
+		time.Sleep(200 * time.Millisecond)
+		if err := sendAude(conn, true); err != nil {
+			LogError("Stream", "resume sendAude error: %v", err)
+		}
+		if err := sendStrmCommand(conn, 's', streamDataPort, 'm', 0, 0, 0, 0); err != nil {
+			LogError("Stream", "resume sendStrmCommand error: %v", err)
+		} else {
+			LogInfo("Stream", "resumed player %s with strm on port %d", playerId, streamDataPort)
+		}
+	}
+
+	publishPlayerStatus()
 }
 
 type PresetItem struct {
@@ -594,12 +636,13 @@ func sendPacket(w io.Writer, opcode string, payload []byte) error {
 	return err
 }
 
-// sendStrmCommand sends a strm packet telling the player to start streaming
+// sendStrmCommand sends a strm packet telling the player to start/resume streaming
 // from a specific port. The player connects to serverIp:serverPort and receives
 // audio data in the format specified by mode (e.g. 'm' = MP3/mad, 'p' = PCM).
-func sendStrmCommand(conn net.Conn, serverPort uint16, mode byte, pcmSampleSize, pcmSampleRate, pcmChannels, pcmEndianness byte) error {
+// command should be 's' for start or 'r' for resume.
+func sendStrmCommand(conn net.Conn, command byte, serverPort uint16, mode byte, pcmSampleSize, pcmSampleRate, pcmChannels, pcmEndianness byte) error {
 	payload := make([]byte, 28)
-	payload[0] = 's'                     // command: start
+	payload[0] = command
 	payload[1] = '1'                     // autostart (ASCII '1')
 	payload[2] = mode
 	payload[3] = pcmSampleSize
@@ -665,6 +708,7 @@ var (
 	streamStartMu  sync.Mutex // serializes entry into stream/PCMTest handlers
 	streamStop     chan struct{}
 	streamDataLis  net.Listener // data listener, closed on stop to unblock Accept
+	streamDataPort uint16       // port the player connects to for audio data
 )
 
 func stopCurrentStream() {
@@ -681,12 +725,13 @@ func stopCurrentStream() {
 		streamDataLis.Close()
 		streamDataLis = nil
 	}
+	streamDataPort = 0
 	streamStopMu.Unlock()
 }
 
 // handleButtonPress dispatches preset button presses from SqueezePlay's
 // CometD /slim/request channel. Called in a new goroutine.
-func handleButtonPress(playerId string, btnName string) {
+func handleButtonPress(playerId string, btnName string, btnArg string) {
 	slimConnMu.Lock()
 	conn := slimConn
 	slimConnMu.Unlock()
@@ -770,6 +815,14 @@ func handleButtonPress(playerId string, btnName string) {
 	case "preset_2.single":
 		LogInfo("Button", "preset 2 → PCM test")
 		go runPCMTest(conn)
+	case "pause", "onepause":
+		if btnArg == "0" {
+			resumePlayer(playerId, conn)
+		} else {
+			pausePlayer(playerId)
+		}
+	case "play", "unpause":
+		resumePlayer(playerId, conn)
 	default:
 		LogInfo("Button", "unhandled button: %s", btnName)
 	}
@@ -906,6 +959,11 @@ func parseIcyMetadata(metaStr string) (string, string) {
 // Runs entirely in a new goroutine (called from handleButtonPress and direct HTTP).
 func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, playerId string) {
 	streamURL = resolveStreamURL(streamURL)
+	if pb != nil {
+		pb.Mu.Lock()
+		pb.StreamURL = streamURL
+		pb.Mu.Unlock()
+	}
 	streamStartTime := time.Now()
 
 	// Start upstream fetch early so data may be ready when the player connects
@@ -980,6 +1038,7 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 		return
 	}
 	port := uint16(listener.Addr().(*net.TCPAddr).Port)
+	streamDataPort = port
 	LogInfo("Stream", "t=%s listening on port %d for URL: %s", time.Since(streamStartTime), port, streamURL)
 
 	// Register the listener BEFORE sendStrmCommand
@@ -989,7 +1048,7 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 	streamDataLis = listener
 	streamStopMu.Unlock()
 
-	if err := sendStrmCommand(conn, port, 'm', 0, 0, 0, 0); err != nil {
+	if err := sendStrmCommand(conn, 's', port, 'm', 0, 0, 0, 0); err != nil {
 		listener.Close()
 		LogError("Stream", "sendStrmCommand error: %v", err)
 		return
@@ -1021,6 +1080,8 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 					close(streamStop)
 					streamStop = nil
 				}
+				streamDataPort = 0
+				streamDataLis = nil
 			}
 			streamStopMu.Unlock()
 			if pb != nil {
@@ -1032,21 +1093,6 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 				publishPlayerStatus()
 			}
 		}()
-
-		playerConn, err := listener.Accept()
-		if err != nil {
-			LogError("Stream", "accept error: %v", err)
-			return
-		}
-		defer playerConn.Close()
-
-		// Write HTTP headers immediately so the player can start buffering
-		headerStr := "HTTP/1.0 200 OK\r\nContent-Type: audio/mpeg\r\nConnection: close\r\n\r\n"
-		if _, err := playerConn.Write([]byte(headerStr)); err != nil {
-			LogError("Stream", "write header error: %v", err)
-			return
-		}
-		LogInfo("Stream", "t=%s wrote HTTP headers", time.Since(streamStartTime))
 
 		// Wait for the upstream fetch
 		LogInfo("Stream", "t=%s waiting for upstream fetch...", time.Since(streamStartTime))
@@ -1094,10 +1140,6 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 		}
 		LogInfo("Stream", "t=%s upstream ready, proxying %s (icy-metaint=%d)", time.Since(streamStartTime), streamURL, result.icyMetaInt)
 
-		totalWritten := int64(0)
-		lastLog := time.Now()
-		buf := make([]byte, 65536)
-		firstLog := true
 		for {
 			select {
 			case <-thisStop:
@@ -1106,49 +1148,94 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 			default:
 			}
 
-			n, err := icyReader.Read(buf)
-			if n > 0 {
-				if firstLog {
-					LogDebug("Stream", "first %d bytes of content: % x", n, buf[:n])
-					firstLog = false
-				}
-				if _, werr := playerConn.Write(buf[:n]); werr != nil {
-					LogError("Stream", "write error: %v", werr)
-					publishStreamError(playerId, conn, werr)
-					return
-				}
-				totalWritten += int64(n)
-				if time.Since(lastLog) > 5*time.Second {
-					LogDebug("Stream", "wrote %d bytes so far", totalWritten)
-					lastLog = time.Now()
-				}
-			}
+			playerConn, err := listener.Accept()
 			if err != nil {
-				if err == io.EOF {
-					LogInfo("Stream", "upstream EOF at offset %d, attempting to resume...", trackR.count)
-					newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
-					if resumeErr == nil && newReader != nil {
-						LogInfo("Stream", "successfully resumed upstream at offset %d", trackR.count)
-						trackR.r.Close() // Close previous reader
-						trackR.r = newReader
-						continue
-					}
-					LogDebug("Stream", "stream ended (cannot resume or EOF): total written %d bytes, resumeErr: %v", totalWritten, resumeErr)
+				streamStopMu.Lock()
+				isActive := (streamStop == thisStop)
+				streamStopMu.Unlock()
+				if isActive {
+					LogError("Stream", "accept error: %v", err)
+				}
+				return
+			}
+
+			func(c net.Conn) {
+				defer c.Close()
+
+				// Write HTTP headers immediately so the player can start buffering
+				headerStr := "HTTP/1.0 200 OK\r\nContent-Type: audio/mpeg\r\nConnection: close\r\n\r\n"
+				if _, err := c.Write([]byte(headerStr)); err != nil {
+					LogError("Stream", "write header error: %v", err)
 					return
 				}
-		LogError("Stream", "read error: %v, attempting to resume...", err)
-		newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
-		if resumeErr == nil && newReader != nil {
-			LogError("Stream", "successfully resumed upstream after error at offset %d", trackR.count)
-			trackR.r.Close() // Close previous reader
-			trackR.r = newReader
-			continue
+				LogInfo("Stream", "t=%s wrote HTTP headers", time.Since(streamStartTime))
+
+				totalWritten := int64(0)
+				lastLog := time.Now()
+				buf := make([]byte, 65536)
+				firstLog := true
+				for {
+					select {
+					case <-thisStop:
+						LogInfo("Stream", "cancelled by new stream")
+						return
+					default:
+					}
+
+					n, err := icyReader.Read(buf)
+					if n > 0 {
+						if firstLog {
+							LogDebug("Stream", "first %d bytes of content: % x", n, buf[:n])
+							firstLog = false
+						}
+						if _, werr := c.Write(buf[:n]); werr != nil {
+							pb.Mu.Lock()
+							isPaused := pb.Paused
+							pb.Mu.Unlock()
+							if !isPaused {
+								LogError("Stream", "write error: %v", werr)
+								if !strings.Contains(werr.Error(), "broken pipe") {
+									publishStreamError(playerId, conn, werr)
+								}
+							} else {
+								LogInfo("Stream", "write error (player paused): %v", werr)
+							}
+							return
+						}
+						totalWritten += int64(n)
+						if time.Since(lastLog) > 5*time.Second {
+							LogDebug("Stream", "wrote %d bytes so far", totalWritten)
+							lastLog = time.Now()
+						}
+					}
+					if err != nil {
+						if err == io.EOF {
+							LogInfo("Stream", "upstream EOF at offset %d, attempting to resume...", trackR.count)
+							newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
+							if resumeErr == nil && newReader != nil {
+								LogInfo("Stream", "successfully resumed upstream at offset %d", trackR.count)
+								trackR.r.Close() // Close previous reader
+								trackR.r = newReader
+								continue
+							}
+							LogDebug("Stream", "stream ended (cannot resume or EOF): total written %d bytes, resumeErr: %v", totalWritten, resumeErr)
+							return
+						}
+						LogError("Stream", "read error: %v, attempting to resume...", err)
+						newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
+						if resumeErr == nil && newReader != nil {
+							LogError("Stream", "successfully resumed upstream after error at offset %d", trackR.count)
+							trackR.r.Close() // Close previous reader
+							trackR.r = newReader
+							continue
+						}
+						LogError("Stream", "read error final: %v, resumeErr: %v", err, resumeErr)
+						publishStreamError(playerId, conn, err)
+						return
+					}
+				}
+			}(playerConn)
 		}
-		LogError("Stream", "read error final: %v, resumeErr: %v", err, resumeErr)
-		publishStreamError(playerId, conn, err)
-		return
-	}
-}
 	}()
 }
 
@@ -1172,6 +1259,7 @@ func runPCMTest(conn net.Conn) {
 		return
 	}
 	port := uint16(listener.Addr().(*net.TCPAddr).Port)
+	streamDataPort = port
 	LogInfo("PCMTest", "listening on port %d", port)
 
 	// Enable audio output — let the player use its knob position
@@ -1187,7 +1275,7 @@ func runPCMTest(conn net.Conn) {
 	streamStopMu.Unlock()
 
 	// PCM: 16-bit signed LE stereo 44100 Hz
-	if err := sendStrmCommand(conn, port, 'p', '1', '3', '2', '1'); err != nil {
+	if err := sendStrmCommand(conn, 's', port, 'p', '1', '3', '2', '1'); err != nil {
 		listener.Close()
 		LogError("PCMTest", "sendStrmCommand error: %v", err)
 		return
@@ -1221,6 +1309,8 @@ func runPCMTest(conn net.Conn) {
 			if streamStop == thisStop {
 				close(streamStop)
 				streamStop = nil
+				streamDataPort = 0
+				streamDataLis = nil
 			}
 			streamStopMu.Unlock()
 		}()
@@ -1307,13 +1397,6 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	if streamURL != "" {
 		streamURL = resolveStreamURL(streamURL)
 	}
-	streamFile := r.URL.Query().Get("file")
-	playerId := r.URL.Query().Get("player")
-
-	if streamURL == "" && streamFile == "" {
-		http.Error(w, "missing url or file parameter", http.StatusBadRequest)
-		return
-	}
 
 	slimConnMu.Lock()
 	conn := slimConn
@@ -1321,6 +1404,16 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	if conn == nil {
 		http.Error(w, "no SlimProto connection", http.StatusServiceUnavailable)
 		return
+	}
+	streamFile := r.URL.Query().Get("file")
+	playerId := normalizePlayerId(r.URL.Query().Get("player"))
+
+	if streamURL != "" {
+		pb := getPlayerPlayback(playerId)
+		pb.Mu.Lock()
+		pb.StreamURL = streamURL
+		pb.Playing = true
+		pb.Mu.Unlock()
 	}
 
 	// Start upstream fetch early so data may be ready when the player connects
@@ -1381,6 +1474,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	port := uint16(listener.Addr().(*net.TCPAddr).Port)
+	streamDataPort = port
 
 	if streamURL != "" {
 		LogInfo("Stream", "t=%s listening on port %d for URL: %s", time.Since(streamStartTime), port, streamURL)
@@ -1396,7 +1490,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	streamDataLis = listener
 	streamStopMu.Unlock()
 
-	if err := sendStrmCommand(conn, port, 'm', 0, 0, 0, 0); err != nil {
+	if err := sendStrmCommand(conn, 's', port, 'm', 0, 0, 0, 0); err != nil {
 		listener.Close()
 		LogError("Stream", "sendStrmCommand error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1427,27 +1521,11 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 			if streamStop == thisStop {
 				close(streamStop)
 				streamStop = nil
+				streamDataPort = 0
+				streamDataLis = nil
 			}
 			streamStopMu.Unlock()
 		}()
-
-		playerConn, err := listener.Accept()
-		if err != nil {
-			LogError("Stream", "accept error: %v", err)
-			return
-		}
-		defer playerConn.Close()
-
-		// Write HTTP headers immediately so the player can start buffering
-		headerStr := "HTTP/1.0 200 OK\r\nContent-Type: audio/mpeg\r\nConnection: close\r\n\r\n"
-		if streamFile != "" {
-			headerStr = "HTTP/1.0 200 OK\r\nContent-Type: application/octet-stream\r\nConnection: close\r\n\r\n"
-		}
-		if _, err := playerConn.Write([]byte(headerStr)); err != nil {
-			LogError("Stream", "write header error: %v", err)
-			return
-		}
-		LogInfo("Stream", "t=%s wrote HTTP headers", time.Since(streamStartTime))
 
 		var reader io.ReadCloser
 		if streamFile != "" {
@@ -1456,27 +1534,22 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 				LogError("Stream", "open file error: %v", err)
 				return
 			}
-			defer f.Close()
 			reader = f
 			LogInfo("Stream", "player connected, serving file %s", streamFile)
 		} else {
 			// Wait for the upstream fetch started in the handler
 			LogInfo("Stream", "t=%s waiting for upstream fetch...", time.Since(streamStartTime))
-		result := <-fetchCh
-		if result.err != nil {
-			LogError("Stream", "http get error: %v", result.err)
-			publishStreamError(playerId, conn, result.err)
-			return
-		}
-			defer result.reader.Close()
+			result := <-fetchCh
+			if result.err != nil {
+				LogError("Stream", "http get error: %v", result.err)
+				publishStreamError(playerId, conn, result.err)
+				return
+			}
 			reader = result.reader
 			LogInfo("Stream", "t=%s upstream ready, proxying %s", time.Since(streamStartTime), streamURL)
 		}
+		defer reader.Close()
 
-		totalWritten := int64(0)
-		lastLog := time.Now()
-		buf := make([]byte, 65536)
-		firstLog := true
 		for {
 			// Check if a new stream has cancelled us
 			select {
@@ -1486,33 +1559,75 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 			default:
 			}
 
-			n, err := reader.Read(buf)
-			if n > 0 {
-				if firstLog {
-					LogDebug("Stream", "first %d bytes of content: % x", n, buf[:n])
-					firstLog = false
-				}
-				if _, werr := playerConn.Write(buf[:n]); werr != nil {
-					LogError("Stream", "write error: %v", werr)
-					publishStreamError(playerId, conn, werr)
-					return
-				}
-				totalWritten += int64(n)
-				if time.Since(lastLog) > 5*time.Second {
-					LogDebug("Stream", "wrote %d bytes so far", totalWritten)
-					lastLog = time.Now()
-				}
-			}
+			playerConn, err := listener.Accept()
 			if err != nil {
-				if err == io.EOF {
-					LogDebug("Stream", "stream ended, total written: %d bytes", totalWritten)
+				streamStopMu.Lock()
+				isActive := (streamStop == thisStop)
+				streamStopMu.Unlock()
+				if isActive {
+					LogError("Stream", "accept error: %v", err)
+				}
+				return
+			}
+
+			func(c net.Conn) {
+				defer c.Close()
+
+				// Write HTTP headers immediately so the player can start buffering
+				headerStr := "HTTP/1.0 200 OK\r\nContent-Type: audio/mpeg\r\nConnection: close\r\n\r\n"
+				if streamFile != "" {
+					headerStr = "HTTP/1.0 200 OK\r\nContent-Type: application/octet-stream\r\nConnection: close\r\n\r\n"
+				}
+				if _, err := c.Write([]byte(headerStr)); err != nil {
+					LogError("Stream", "write header error: %v", err)
 					return
 				}
-		LogError("Stream", "read error: %v", err)
-		publishStreamError(playerId, conn, err)
-		return
-	}
-}
+				LogInfo("Stream", "t=%s wrote HTTP headers", time.Since(streamStartTime))
+
+				totalWritten := int64(0)
+				lastLog := time.Now()
+				buf := make([]byte, 65536)
+				firstLog := true
+				for {
+					// Check if a new stream has cancelled us
+					select {
+					case <-thisStop:
+						LogInfo("Stream", "cancelled by new stream")
+						return
+					default:
+					}
+
+					n, err := reader.Read(buf)
+					if n > 0 {
+						if firstLog {
+							LogDebug("Stream", "first %d bytes of content: % x", n, buf[:n])
+							firstLog = false
+						}
+						if _, werr := c.Write(buf[:n]); werr != nil {
+							LogError("Stream", "write error: %v", werr)
+							if !strings.Contains(werr.Error(), "broken pipe") {
+								publishStreamError(playerId, conn, werr)
+							}
+							return
+						}
+						totalWritten += int64(n)
+						if time.Since(lastLog) > 5*time.Second {
+							LogDebug("Stream", "wrote %d bytes so far", totalWritten)
+							lastLog = time.Now()
+						}
+					}
+					if err != nil {
+						if err == io.EOF {
+							LogDebug("Stream", "stream ended, total written: %d bytes", totalWritten)
+							return
+						}
+						LogError("Stream", "read error: %v", err)
+						publishStreamError(playerId, conn, err)
+						return
+					}
+				}
+			}(playerConn)
+		}
 	}()
 
 	if streamURL != "" {
@@ -1556,6 +1671,7 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	port := uint16(listener.Addr().(*net.TCPAddr).Port)
+	streamDataPort = port
 	LogInfo("PCMTest", "listening on port %d", port)
 
 	// Enable audio output — let the player use its knob position
@@ -1576,7 +1692,7 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 	// pcmSampleRate = '3' (44100 Hz)
 	// pcmChannels  = '2' (stereo)
 	// pcmEndianness = '1' (little endian)
-	if err := sendStrmCommand(conn, port, 'p', '1', '3', '2', '1'); err != nil {
+	if err := sendStrmCommand(conn, 's', port, 'p', '1', '3', '2', '1'); err != nil {
 		listener.Close()
 		LogError("PCMTest", "sendStrmCommand error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1612,26 +1728,11 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 			if streamStop == thisStop {
 				close(streamStop)
 				streamStop = nil
+				streamDataPort = 0
+				streamDataLis = nil
 			}
 			streamStopMu.Unlock()
 		}()
-
-		playerConn, err := listener.Accept()
-		if err != nil {
-			LogError("PCMTest", "accept error: %v", err)
-			return
-		}
-		defer playerConn.Close()
-
-		LogInfo("PCMTest", "player connected")
-
-		// HTTP headers required by stream_readL
-		header := "HTTP/1.0 200 OK\r\nContent-Type: audio/L16\r\nConnection: close\r\n\r\n"
-		if _, err := playerConn.Write([]byte(header)); err != nil {
-			LogError("PCMTest", "write header error: %v", err)
-			return
-		}
-		LogInfo("PCMTest", "wrote HTTP headers (%d bytes)", len(header))
 
 		// Generate PCM sine wave: 440 Hz, 16-bit signed LE stereo at 44100 Hz
 		const (
@@ -1643,11 +1744,8 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 
 		totalSamples := int(sampleRate * int(duration.Seconds()))
 		buf := make([]byte, 4096)
-		sampleIdx := 0
-		totalWritten := int64(0)
-		lastLog := time.Now()
 
-		for sampleIdx < totalSamples {
+		for {
 			select {
 			case <-thisStop:
 				LogInfo("PCMTest", "cancelled by new stream")
@@ -1655,31 +1753,68 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 			default:
 			}
 
-			bytesPerSample := 2
-			channels := 2
-			samplesPerBuf := len(buf) / (bytesPerSample * channels)
-			off := 0
-			for s := 0; s < samplesPerBuf && sampleIdx < totalSamples; s++ {
-				t := float64(sampleIdx) / sampleRate
-				val := int16(amplitude * math.Sin(2*math.Pi*freq*t))
-				binary.LittleEndian.PutUint16(buf[off:off+2], uint16(val))
-				binary.LittleEndian.PutUint16(buf[off+2:off+4], uint16(val)) // same for right channel
-				off += 4
-				sampleIdx++
-			}
-
-			if _, werr := playerConn.Write(buf[:off]); werr != nil {
-				LogError("PCMTest", "write error: %v", werr)
+			playerConn, err := listener.Accept()
+			if err != nil {
+				streamStopMu.Lock()
+				isActive := (streamStop == thisStop)
+				streamStopMu.Unlock()
+				if isActive {
+					LogError("PCMTest", "accept error: %v", err)
+				}
 				return
 			}
-			totalWritten += int64(off)
-			if time.Since(lastLog) > 2*time.Second {
-				LogDebug("PCMTest", "wrote %d bytes (%d samples)", totalWritten, sampleIdx)
-				lastLog = time.Now()
-			}
-		}
 
-		LogDebug("PCMTest", "done, total written: %d bytes (%d samples)", totalWritten, sampleIdx)
+			func(c net.Conn) {
+				defer c.Close()
+
+				LogInfo("PCMTest", "player connected")
+
+				// HTTP headers required by stream_readL
+				header := "HTTP/1.0 200 OK\r\nContent-Type: audio/L16\r\nConnection: close\r\n\r\n"
+				if _, err := c.Write([]byte(header)); err != nil {
+					LogError("PCMTest", "write header error: %v", err)
+					return
+				}
+				LogInfo("PCMTest", "wrote HTTP headers (%d bytes)", len(header))
+
+				totalWritten := int64(0)
+				lastLog := time.Now()
+				sampleIdxConn := 0
+				for sampleIdxConn < totalSamples {
+					select {
+					case <-thisStop:
+						LogInfo("PCMTest", "cancelled by new stream")
+						return
+					default:
+					}
+
+					bytesPerSample := 2
+					channels := 2
+					samplesPerBuf := len(buf) / (bytesPerSample * channels)
+					off := 0
+					for s := 0; s < samplesPerBuf && sampleIdxConn < totalSamples; s++ {
+						t := float64(sampleIdxConn) / sampleRate
+						val := int16(amplitude * math.Sin(2*math.Pi*freq*t))
+						binary.LittleEndian.PutUint16(buf[off:off+2], uint16(val))
+						binary.LittleEndian.PutUint16(buf[off+2:off+4], uint16(val)) // same for right channel
+						off += 4
+						sampleIdxConn++
+					}
+
+					if _, werr := c.Write(buf[:off]); werr != nil {
+						LogError("PCMTest", "write error: %v", werr)
+						return
+					}
+					totalWritten += int64(off)
+					if time.Since(lastLog) > 2*time.Second {
+						LogDebug("PCMTest", "wrote %d bytes (%d samples)", totalWritten, sampleIdxConn)
+						lastLog = time.Now()
+					}
+				}
+
+				LogDebug("PCMTest", "done, total written: %d bytes (%d samples)", totalWritten, sampleIdxConn)
+			}(playerConn)
+		}
 	}()
 
 	w.Header().Set("Content-Type", "text/plain")
@@ -1824,6 +1959,14 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 				return
 			}
 			LogInfo("TCP", "%s initial strm sent", remote)
+
+		if streamDataPort != 0 {
+			if err := sendStrmCommand(conn, 's', streamDataPort, 'm', 0, 0, 0, 0); err != nil {
+				LogError("TCP", "%s error sending resume strm: %v", remote, err)
+			} else {
+					LogInfo("TCP", "%s resumed stream on port %d", remote, streamDataPort)
+				}
+			}
 
 		case "STAT":
 			if !heloReceived {
@@ -2709,12 +2852,35 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 							case "artworkspec":
 								// artworkspec commands are fire-and-forget; return empty
 							case "button":
+								if len(cmdArr) >= 1 {
+									method := ""
+									if m, ok := cmdArr[0].(string); ok {
+										method = m
+									}
+									arg := ""
+									if len(cmdArr) >= 2 {
+										switch v := cmdArr[1].(type) {
+										case string:
+											arg = v
+										case float64:
+											arg = fmt.Sprintf("%.0f", v)
+										}
+									}
+									LogInfo("Button", "CometD button for player=%s: %s arg=%s", reqPlayerId, method, arg)
+									go handleButtonPress(reqPlayerId, method, arg)
+								}
+							case "pause", "play", "onepause", "unpause":
+								arg := ""
 								if len(cmdArr) >= 2 {
-									if btnName, ok := cmdArr[1].(string); ok {
-										LogInfo("Button", "CometD button for player=%s: %s", reqPlayerId, btnName)
-										go handleButtonPress(reqPlayerId, btnName)
+									switch v := cmdArr[1].(type) {
+									case string:
+										arg = v
+									case float64:
+										arg = fmt.Sprintf("%.0f", v)
 									}
 								}
+								LogInfo("Button", "CometD %s for player=%s arg=%s", cmd, reqPlayerId, arg)
+								go handleButtonPress(reqPlayerId, cmd, arg)
 							case "jivefavorites":
 								go handleJiveFavorites(respClid, reqPlayerId, cmdArr, paramsObj)
 							}
@@ -3359,45 +3525,69 @@ func publishPlayerStatus() {
 	for clid, sc := range clientsCopy {
 		players := getConnectedPlayers()
 		for _, p := range players {
-			pb := getPlayerPlayback(p.MAC)
-			pb.Mu.Lock()
-			playing := pb.Playing
-			title := pb.PlayingTitle
-			desc := pb.PlayingDesc
-			icon := pb.PlayingIcon
-			urlStr := pb.PlayingURL
-			stationName := pb.StationName
-			pb.Mu.Unlock()
+		pb := getPlayerPlayback(p.MAC)
+		pb.Mu.Lock()
+		playing := pb.Playing
+		paused := pb.Paused
+		title := pb.PlayingTitle
+		desc := pb.PlayingDesc
+		icon := pb.PlayingIcon
+		urlStr := pb.PlayingURL
+		stationName := pb.StationName
+		pb.Mu.Unlock()
 
-			mode := "stop"
-			count := 0
-			itemLoop := []interface{}{}
-			remote := 0
-			currentTitle := ""
-			if playing {
-				mode = "play"
-				count = 1
-				remote = 1
-				currentTitle = title
-				itemLoop = []interface{}{
-					map[string]interface{}{
-						"id":          0,
-						"title":       title,
-						"track":       title,
-						"artist":      desc,
-						"album":       desc,
-						"text":        stationName,
-						"artwork_url": icon,
-						"icon":        icon,
-						"icon-id":     icon,
-						"url":         urlStr,
-						"duration":    0,
-						"params": map[string]interface{}{
-							"track_id": 0,
-						},
+		mode := "stop"
+		count := 0
+		itemLoop := []interface{}{}
+		remote := 0
+		currentTitle := ""
+		if playing {
+			mode = "play"
+			count = 1
+			remote = 1
+			currentTitle = title
+			itemLoop = []interface{}{
+				map[string]interface{}{
+					"id":          0,
+					"title":       title,
+					"track":       title,
+					"artist":      desc,
+					"album":       desc,
+					"text":        stationName,
+					"artwork_url": icon,
+					"icon":        icon,
+					"icon-id":     icon,
+					"url":         urlStr,
+					"duration":    0,
+					"params": map[string]interface{}{
+						"track_id": 0,
 					},
-				}
+				},
 			}
+		} else if paused {
+			mode = "pause"
+			count = 1
+			remote = 1
+			currentTitle = title
+			itemLoop = []interface{}{
+				map[string]interface{}{
+					"id":          0,
+					"title":       title,
+					"track":       title,
+					"artist":      desc,
+					"album":       desc,
+					"text":        stationName,
+					"artwork_url": icon,
+					"icon":        icon,
+					"icon-id":     icon,
+					"url":         urlStr,
+					"duration":    0,
+					"params": map[string]interface{}{
+						"track_id": 0,
+					},
+				},
+			}
+		}
 
 		statusData := map[string]interface{}{
 			"player_name":        p.Name,
@@ -3421,10 +3611,10 @@ func publishPlayerStatus() {
 			"remote":             remote,
 			"current_title":      currentTitle,
 		}
-			if playing {
-				statusData["item_loop"] = itemLoop
-				statusData["playlist_loop"] = itemLoop
-			}
+		if playing || paused {
+			statusData["item_loop"] = itemLoop
+			statusData["playlist_loop"] = itemLoop
+		}
 
 			select {
 			case sc.events <- []interface{}{
@@ -3468,6 +3658,7 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 	pb := getPlayerPlayback(playerId)
 	pb.Mu.Lock()
 	playing := pb.Playing
+	paused := pb.Paused
 	title := pb.PlayingTitle
 	desc := pb.PlayingDesc
 	icon := pb.PlayingIcon
@@ -3482,6 +3673,29 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 	currentTitle := ""
 	if playing {
 		mode = "play"
+		count = 1
+		remote = 1
+		currentTitle = title
+		itemLoop = []interface{}{
+			map[string]interface{}{
+				"id":          0,
+				"title":       title,
+				"track":       title,
+				"artist":      desc,
+				"album":       desc,
+				"text":        stationName,
+				"artwork_url": icon,
+				"icon":        icon,
+				"icon-id":     icon,
+				"url":         urlStr,
+				"duration":    0,
+				"params": map[string]interface{}{
+					"track_id": 0,
+				},
+			},
+		}
+	} else if paused {
+		mode = "pause"
 		count = 1
 		remote = 1
 		currentTitle = title
@@ -3527,7 +3741,7 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 		"remote":             remote,
 		"current_title":      currentTitle,
 	}
-	if playing {
+	if playing || paused {
 		data["item_loop"] = itemLoop
 		data["playlist_loop"] = itemLoop
 	}

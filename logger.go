@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log/syslog"
 	"os"
 	"strings"
@@ -48,7 +49,7 @@ type Logger struct {
 func InitLogging(configPath string) error {
 	cfg := defaultConfig
 	if configPath != "" {
-		data, err := os.ReadFile(configPath)
+		data, err := ioutil.ReadFile(configPath)
 		if err == nil {
 			json.Unmarshal(data, &cfg)
 		}
