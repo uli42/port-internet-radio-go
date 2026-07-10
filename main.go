@@ -742,9 +742,20 @@ func handleButtonPress(playerId string, btnName string, btnArg string) {
 
 	// Combine btnName and btnArg if action is passed separately
 	// e.g. btnName="1", btnArg="hold" -> "1.hold"
+	// Also handle play/pause/play/unpause as button names
 	fullName := btnName
 	if btnArg != "" && !strings.Contains(btnName, ".") {
 		fullName = btnName + "." + btnArg
+	}
+
+	// If btnName is a transport control, dispatch directly
+	switch btnName {
+	case "play", "unpause":
+		resumePlayer(playerId, conn)
+		return
+	case "pause", "onepause":
+		pausePlayer(playerId)
+		return
 	}
 
 	var presetNum int
