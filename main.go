@@ -18,7 +18,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"regexp"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -963,6 +962,7 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 	if pb != nil {
 		pb.Mu.Lock()
 		pb.StreamURL = streamURL
+		pb.PlayingURL = streamURL
 		pb.Mu.Unlock()
 	}
 	streamStartTime := time.Now()
@@ -1093,7 +1093,6 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 				pb.Mu.Unlock()
 				publishPlayerStatus()
 			}
-			debug.FreeOSMemory()
 		}()
 
 		// Wait for the upstream fetch
@@ -1315,7 +1314,6 @@ func runPCMTest(conn net.Conn) {
 				streamDataLis = nil
 			}
 			streamStopMu.Unlock()
-			debug.FreeOSMemory()
 		}()
 
 		playerConn, err := listener.Accept()
@@ -1415,6 +1413,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 		pb := getPlayerPlayback(playerId)
 		pb.Mu.Lock()
 		pb.StreamURL = streamURL
+		pb.PlayingURL = streamURL
 		pb.Playing = true
 		pb.Mu.Unlock()
 	}
@@ -1528,7 +1527,6 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 				streamDataLis = nil
 			}
 			streamStopMu.Unlock()
-			debug.FreeOSMemory()
 		}()
 
 		var reader io.ReadCloser
@@ -1736,7 +1734,6 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 				streamDataLis = nil
 			}
 			streamStopMu.Unlock()
-			debug.FreeOSMemory()
 		}()
 
 		// Generate PCM sine wave: 440 Hz, 16-bit signed LE stereo at 44100 Hz
@@ -2368,9 +2365,9 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 
 	ct := resp.Header.Get("Content-Type")
 
-	// Cache the image under a strict 1MB memory budget
+	// Cache the image under a strict 2MB memory budget
 	imageCacheMu.Lock()
-	for cacheTotalBytes+len(bodyBytes) > 1*1024*1024 && len(imageCache) > 0 {
+	for cacheTotalBytes+len(bodyBytes) > 2*1024*1024 && len(imageCache) > 0 {
 		var evictKey string
 		for k := range imageCache {
 			evictKey = k
@@ -2379,7 +2376,7 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 		cacheTotalBytes -= len(imageCache[evictKey].Body)
 		delete(imageCache, evictKey)
 	}
-	if cacheTotalBytes+len(bodyBytes) <= 1*1024*1024 {
+	if cacheTotalBytes+len(bodyBytes) <= 2*1024*1024 {
 		imageCache[u] = CachedImage{
 			Body:        bodyBytes,
 			ContentType: ct,
