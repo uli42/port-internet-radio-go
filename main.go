@@ -749,12 +749,17 @@ func handleButtonPress(playerId string, btnName string, btnArg string) {
 	}
 
 	// If btnName is a transport control, dispatch directly
+	// For pause/onepause, check btnArg: "0" means resume, anything else means pause
 	switch btnName {
 	case "play", "unpause":
 		resumePlayer(playerId, conn)
 		return
 	case "pause", "onepause":
-		pausePlayer(playerId)
+		if btnArg == "0" {
+			resumePlayer(playerId, conn)
+		} else {
+			pausePlayer(playerId)
+		}
 		return
 	}
 
@@ -2904,6 +2909,18 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 								}
 								LogInfo("Button", "CometD %s for player=%s arg=%s", cmd, reqPlayerId, arg)
 								go handleButtonPress(reqPlayerId, cmd, arg)
+							case "mode":
+								if len(cmdArr) >= 2 {
+									mode := ""
+									switch v := cmdArr[1].(type) {
+									case string:
+										mode = v
+									case float64:
+										mode = fmt.Sprintf("%.0f", v)
+									}
+									LogInfo("Button", "CometD mode=%s for player=%s", mode, reqPlayerId)
+									go handleButtonPress(reqPlayerId, mode, "")
+								}
 							case "jivefavorites":
 								go handleJiveFavorites(respClid, reqPlayerId, cmdArr, paramsObj)
 							}
