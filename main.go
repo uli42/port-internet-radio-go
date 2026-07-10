@@ -2852,22 +2852,22 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 							case "artworkspec":
 								// artworkspec commands are fire-and-forget; return empty
 							case "button":
-								if len(cmdArr) >= 1 {
-									method := ""
-									if m, ok := cmdArr[0].(string); ok {
-										method = m
+								if len(cmdArr) >= 2 {
+									btnName := ""
+									if s, ok := cmdArr[1].(string); ok {
+										btnName = s
 									}
-									arg := ""
-									if len(cmdArr) >= 2 {
-										switch v := cmdArr[1].(type) {
+									btnArg := ""
+									if len(cmdArr) >= 3 {
+										switch v := cmdArr[2].(type) {
 										case string:
-											arg = v
+											btnArg = v
 										case float64:
-											arg = fmt.Sprintf("%.0f", v)
+											btnArg = fmt.Sprintf("%.0f", v)
 										}
 									}
-									LogInfo("Button", "CometD button for player=%s: %s arg=%s", reqPlayerId, method, arg)
-									go handleButtonPress(reqPlayerId, method, arg)
+									LogInfo("Button", "CometD button for player=%s: %s arg=%s", reqPlayerId, btnName, btnArg)
+									go handleButtonPress(reqPlayerId, btnName, btnArg)
 								}
 							case "pause", "play", "onepause", "unpause":
 								arg := ""
