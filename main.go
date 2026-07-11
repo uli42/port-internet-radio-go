@@ -636,11 +636,28 @@ func sendPacket(w io.Writer, opcode string, payload []byte) error {
 	return err
 }
 
+// defaultStreamThreshold returns the default buffer threshold in milliseconds
+// for the given stream mode. AAC/OGG/FLAC need more buffer for decoder init.
+func defaultStreamThreshold(mode byte) byte {
+	switch mode {
+	case 'a', 'o', 'f':
+		return 200
+	case 'p':
+		return 50
+	default:
+		return 1
+	}
+}
+
 // sendStrmCommand sends a strm packet telling the player to start/resume streaming
 // from a specific port. The player connects to serverIp:serverPort and receives
 // audio data in the format specified by mode (e.g. 'm' = MP3/mad, 'p' = PCM).
 // command should be 's' for start or 'r' for resume.
-func sendStrmCommand(conn net.Conn, command byte, serverPort uint16, mode byte, pcmSampleSize, pcmSampleRate, pcmChannels, pcmEndianness byte) error {
+func sendStrmCommand(conn net.Conn, command byte, serverPort uint16, mode byte, pcmSampleSize, pcmSampleRate, pcmChannels, pcmEndianness byte, threshold ...byte) error {
+	thresh := byte(1)
+	if len(threshold) > 0 {
+		thresh = threshold[0]
+	}
 	payload := make([]byte, 28)
 	payload[0] = command
 	payload[1] = '1'                     // autostart (ASCII '1')
@@ -649,7 +666,7 @@ func sendStrmCommand(conn net.Conn, command byte, serverPort uint16, mode byte, 
 	payload[4] = pcmSampleRate
 	payload[5] = pcmChannels
 	payload[6] = pcmEndianness
-	payload[7] = 1                       // threshold (1ms — minimal buffering)
+	payload[7] = thresh                   // threshold (ms of audio to buffer before starting)
 	payload[8] = 0                       // spdifEnable
 	payload[9] = 0                       // transitionPeriod
 	payload[10] = 0                      // transitionType
@@ -664,14 +681,32 @@ func sendStrmCommand(conn net.Conn, command byte, serverPort uint16, mode byte, 
 	return sendPacket(conn, "strm", payload)
 }
 
-// sendAudg sends an audio gain packet setting volume.
-// The Lua SlimProto parser (SlimProto.lua:236) does `gainL = unpackNumber(packet, 5, 4) << 9`,
-// so the value sent here is the raw volume 0–100 (NOT pre-shifted). Sending 50 yields
-// gain = 50 << 9 = 25600 in decode:audioGain, giving ~39 % of full digital output.
+// sendAudg sends an audio gain packet matching LMS's full 22-byte format:
+//   oldGainL (N), oldGainR (N), dvc (C), preamp (C), newGainL (N), newGainR (N), sequenceNumber (N).
+// SqueezePlay requires this full packet to activate the audio output path.
 func sendAudg(conn net.Conn, volume int) error {
-	payload := make([]byte, 8)
-	binary.BigEndian.PutUint32(payload[0:4], uint32(volume))
-	binary.BigEndian.PutUint32(payload[4:8], uint32(volume))
+	clientVolumeMu.Lock()
+	v := clientVolume
+	if volume >= 0 {
+		v = volume
+	}
+	clientVolumeMu.Unlock()
+
+	var newGain uint32
+	if v <= 0 {
+		newGain = 0
+	} else {
+		newGain = 65536 // 0 dB in Q16 fixed-point
+	}
+
+	payload := make([]byte, 22)
+	binary.BigEndian.PutUint32(payload[0:4], 0)        // oldGain left
+	binary.BigEndian.PutUint32(payload[4:8], 0)        // oldGain right
+	payload[8] = 1                                      // dvc (digital volume control)
+	payload[9] = 255                                    // preamp
+	binary.BigEndian.PutUint32(payload[10:14], newGain) // newGain left
+	binary.BigEndian.PutUint32(payload[14:18], newGain) // newGain right
+	binary.BigEndian.PutUint32(payload[18:22], 0)       // sequenceNumber
 	return sendPacket(conn, "audg", payload)
 }
 
@@ -689,6 +724,67 @@ func sendStrmStop(conn net.Conn) error {
 	payload := make([]byte, 28)
 	payload[0] = 'q' // stop/quit command
 	return sendPacket(conn, "strm", payload)
+}
+
+func isFfmpegAvailable() bool {
+	_, err := exec.LookPath("ffmpeg")
+	return err == nil
+}
+
+type ffmpegAacReader struct {
+	upstream  io.Reader
+	ffmpegCmd *exec.Cmd
+	ffmpegOut io.Reader
+	ffmpegIn  io.WriteCloser
+}
+
+func newFfmpegAacReader(upstream io.Reader, metaInt int, onMetadata func(string)) (*ffmpegAacReader, error) {
+	cmd := exec.Command("ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "aac", "-i", "pipe:0", "-f", "adts", "pipe:1")
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		stdin.Close()
+		return nil, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		stdin.Close()
+		stdout.Close()
+		return nil, err
+	}
+
+	icyR := &IcyReader{
+		reader:      upstream,
+		metaInt:     metaInt,
+		bytesToNext: metaInt,
+		onMetadata:  onMetadata,
+	}
+
+	go func() {
+		defer stdin.Close()
+		io.Copy(stdin, icyR)
+	}()
+
+	return &ffmpegAacReader{
+		upstream:  upstream,
+		ffmpegCmd: cmd,
+		ffmpegOut: stdout,
+		ffmpegIn:  stdin,
+	}, nil
+}
+
+func (r *ffmpegAacReader) Read(p []byte) (n int, err error) {
+	return r.ffmpegOut.Read(p)
+}
+
+func (r *ffmpegAacReader) Close() error {
+	r.ffmpegIn.Close()
+	return r.ffmpegCmd.Wait()
 }
 
 // sendAude sends an audio enable/disable command to the player.
@@ -709,6 +805,8 @@ var (
 	streamStop     chan struct{}
 	streamDataLis  net.Listener // data listener, closed on stop to unblock Accept
 	streamDataPort uint16       // port the player connects to for audio data
+	clientVolume   int          // last known volume 0-100 from player's setd cmd=5
+	clientVolumeMu sync.Mutex
 )
 
 func stopCurrentStream() {
@@ -1007,7 +1105,7 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 			return
 		}
 		req.Header.Set("Icy-MetaData", "1")
-		req.Header.Set("User-Agent", "SlimProto/1.0")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
 		resp, err := insecureClient.Do(req)
 		if err != nil {
@@ -1056,6 +1154,9 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 	if err := sendAude(conn, true); err != nil {
 		LogError("Stream", "sendAude error: %v", err)
 	}
+	if err := sendAudg(conn, -1); err != nil {
+		LogError("Stream", "sendAudg error: %v", err)
+	}
 	listener, err := listenTCP4(":0")
 	if err != nil {
 		LogError("Stream", "listen error: %v", err)
@@ -1071,12 +1172,6 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 	thisStop := streamStop
 	streamDataLis = listener
 	streamStopMu.Unlock()
-
-	if err := sendStrmCommand(conn, 's', port, 'm', 0, 0, 0, 0); err != nil {
-		listener.Close()
-		LogError("Stream", "sendStrmCommand error: %v", err)
-		return
-	}
 
 	// Keepalive goroutine
 	go func() {
@@ -1127,6 +1222,29 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 			return
 		}
 
+		mode := byte('m')
+		if result.contentType != "" {
+			ct := strings.ToLower(result.contentType)
+			switch {
+			case strings.Contains(ct, "aac"):
+				mode = 'a'
+			case strings.Contains(ct, "ogg"):
+				mode = 'o'
+			case strings.Contains(ct, "flac"):
+				mode = 'f'
+			case strings.Contains(ct, "wav") || strings.Contains(ct, "pcm") || strings.Contains(ct, "l16"):
+				mode = 'p'
+			}
+			LogInfo("Stream", "detected content-type=%s, using mode=%c", result.contentType, mode)
+		}
+
+		if err := sendStrmCommand(conn, 's', port, mode, 0, 0, 0, 0, defaultStreamThreshold(mode)); err != nil {
+			listener.Close()
+			LogError("Stream", "sendStrmCommand error: %v", err)
+			return
+		}
+		LogInfo("Stream", "t=%s sent strm command mode=%c port=%d threshold=%dms", time.Since(streamStartTime), mode, port, defaultStreamThreshold(mode))
+
 		if pb != nil && result.icyName != "" {
 			pb.Mu.Lock()
 			pb.StationName = result.icyName
@@ -1142,26 +1260,44 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 			pb.Mu.Unlock()
 			publishPlayerStatus()
 		}
-		trackR := &trackingReader{r: result.reader, count: 0}
-		defer trackR.Close()
-		icyReader := &IcyReader{
-			reader:      trackR,
+		upstreamTracker := &trackingReader{r: result.reader, count: 0}
+		defer upstreamTracker.Close()
+
+		onMeta := func(metaStr string) {
+			streamStopMu.Lock()
+			stillActive := (streamStop == thisStop)
+			streamStopMu.Unlock()
+			if !stillActive {
+				return
+			}
+			title, artist := parseIcyMetadata(metaStr)
+			if title != "" {
+				LogInfo("ICY", "Song update: %s - %s", artist, title)
+				if pb != nil {
+					pb.Mu.Lock()
+					pb.PlayingTitle = title
+					pb.PlayingDesc = artist
+					pb.Mu.Unlock()
+					publishPlayerStatus()
+				}
+			}
+		}
+
+		var proxySource io.Reader = &IcyReader{
+			reader:      upstreamTracker,
 			metaInt:     result.icyMetaInt,
 			bytesToNext: result.icyMetaInt,
-			onMetadata: func(metaStr string) {
-				title, artist := parseIcyMetadata(metaStr)
-				if title != "" {
-					LogInfo("ICY", "Song update: %s - %s", artist, title)
-					if pb != nil {
-						pb.Mu.Lock()
-						pb.PlayingTitle = title
-						pb.PlayingDesc = artist
-						pb.Mu.Unlock()
-						publishPlayerStatus()
-					}
-				}
-			},
+			onMetadata:  onMeta,
 		}
+
+		if mode == 'a' && isFfmpegAvailable() {
+			ffmpegR, err := newFfmpegAacReader(upstreamTracker, result.icyMetaInt, onMeta)
+			if err == nil {
+				proxySource = ffmpegR
+				defer ffmpegR.Close()
+			}
+		}
+
 		LogInfo("Stream", "t=%s upstream ready, proxying %s (icy-metaint=%d)", time.Since(streamStartTime), streamURL, result.icyMetaInt)
 
 		for {
@@ -1183,16 +1319,19 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 				return
 			}
 
-			func(c net.Conn) {
-				defer c.Close()
+		func(c net.Conn) {
+			defer c.Close()
 
-				// Write HTTP headers immediately so the player can start buffering
-				headerStr := "HTTP/1.0 200 OK\r\nContent-Type: audio/mpeg\r\nConnection: close\r\n\r\n"
-				if _, err := c.Write([]byte(headerStr)); err != nil {
-					LogError("Stream", "write header error: %v", err)
-					return
-				}
-				LogInfo("Stream", "t=%s wrote HTTP headers", time.Since(streamStartTime))
+			ct := "audio/mpeg"
+			if result.contentType != "" {
+				ct = result.contentType
+			}
+			headerStr := fmt.Sprintf("HTTP/1.0 200 OK\r\nContent-Type: %s\r\nConnection: close\r\n\r\n", ct)
+			if _, err := c.Write([]byte(headerStr)); err != nil {
+				LogError("Stream", "write header error: %v", err)
+				return
+			}
+			LogInfo("Stream", "t=%s wrote HTTP headers content-type=%s mode=%c", time.Since(streamStartTime), ct, mode)
 
 				totalWritten := int64(0)
 				lastLog := time.Now()
@@ -1206,7 +1345,7 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 					default:
 					}
 
-					n, err := icyReader.Read(buf)
+					n, err := proxySource.Read(buf)
 					if n > 0 {
 						if firstLog {
 							LogDebug("Stream", "first %d bytes of content: % x", n, buf[:n])
@@ -1217,9 +1356,14 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 							isPaused := pb.Paused
 							pb.Mu.Unlock()
 							if !isPaused {
-								LogError("Stream", "write error: %v", werr)
-								if !strings.Contains(werr.Error(), "broken pipe") {
-									publishStreamError(playerId, conn, werr)
+								streamStopMu.Lock()
+								stillActive := (streamStop == thisStop)
+								streamStopMu.Unlock()
+								if stillActive {
+									LogError("Stream", "write error: %v", werr)
+									if !strings.Contains(werr.Error(), "broken pipe") && !strings.Contains(werr.Error(), "connection reset by peer") {
+										publishStreamError(playerId, conn, werr)
+									}
 								}
 							} else {
 								LogInfo("Stream", "write error (player paused): %v", werr)
@@ -1234,23 +1378,23 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 					}
 					if err != nil {
 						if err == io.EOF {
-							LogInfo("Stream", "upstream EOF at offset %d, attempting to resume...", trackR.count)
-							newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
+							LogInfo("Stream", "upstream EOF at offset %d, attempting to resume...", upstreamTracker.count)
+							newReader, _, resumeErr := resumeUpstream(streamURL, upstreamTracker.count)
 							if resumeErr == nil && newReader != nil {
-								LogInfo("Stream", "successfully resumed upstream at offset %d", trackR.count)
-								trackR.r.Close() // Close previous reader
-								trackR.r = newReader
+								LogInfo("Stream", "successfully resumed upstream at offset %d", upstreamTracker.count)
+								upstreamTracker.r.Close()
+								upstreamTracker.r = newReader
 								continue
 							}
 							LogDebug("Stream", "stream ended (cannot resume or EOF): total written %d bytes, resumeErr: %v", totalWritten, resumeErr)
 							return
 						}
 						LogError("Stream", "read error: %v, attempting to resume...", err)
-						newReader, _, resumeErr := resumeUpstream(streamURL, trackR.count)
+						newReader, _, resumeErr := resumeUpstream(streamURL, upstreamTracker.count)
 						if resumeErr == nil && newReader != nil {
-							LogError("Stream", "successfully resumed upstream after error at offset %d", trackR.count)
-							trackR.r.Close() // Close previous reader
-							trackR.r = newReader
+							LogError("Stream", "successfully resumed upstream after error at offset %d", upstreamTracker.count)
+							upstreamTracker.r.Close()
+							upstreamTracker.r = newReader
 							continue
 						}
 						LogError("Stream", "read error final: %v, resumeErr: %v", err, resumeErr)
@@ -1290,6 +1434,9 @@ func runPCMTest(conn net.Conn) {
 	if err := sendAude(conn, true); err != nil {
 		LogError("PCMTest", "sendAude error: %v", err)
 	}
+	if err := sendAudg(conn, -1); err != nil {
+		LogError("PCMTest", "sendAudg error: %v", err)
+	}
 
 	// Register the listener BEFORE sendStrmCommand
 	streamStopMu.Lock()
@@ -1299,7 +1446,7 @@ func runPCMTest(conn net.Conn) {
 	streamStopMu.Unlock()
 
 	// PCM: 16-bit signed LE stereo 44100 Hz
-	if err := sendStrmCommand(conn, 's', port, 'p', '1', '3', '2', '1'); err != nil {
+	if err := sendStrmCommand(conn, 's', port, 'p', '1', '3', '2', '1', 50); err != nil {
 		listener.Close()
 		LogError("PCMTest", "sendStrmCommand error: %v", err)
 		return
@@ -1491,6 +1638,9 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	// Enable audio output — don't force volume, let the player use its knob position
 	if err := sendAude(conn, true); err != nil {
 		LogError("Stream", "sendAude error: %v", err)
+	}
+	if err := sendAudg(conn, -1); err != nil {
+		LogError("Stream", "sendAudg error: %v", err)
 	}
 	listener, err := listenTCP4(":0")
 	if err != nil {
@@ -1703,6 +1853,9 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 	if err := sendAude(conn, true); err != nil {
 		LogError("PCMTest", "sendAude error: %v", err)
 	}
+	if err := sendAudg(conn, -1); err != nil {
+		LogError("PCMTest", "sendAudg error: %v", err)
+	}
 
 	// Register the listener BEFORE sendStrmCommand
 	streamStopMu.Lock()
@@ -1717,7 +1870,7 @@ func handlePCMTest(w http.ResponseWriter, r *http.Request) {
 	// pcmSampleRate = '3' (44100 Hz)
 	// pcmChannels  = '2' (stereo)
 	// pcmEndianness = '1' (little endian)
-	if err := sendStrmCommand(conn, 's', port, 'p', '1', '3', '2', '1'); err != nil {
+	if err := sendStrmCommand(conn, 's', port, 'p', '1', '3', '2', '1', 50); err != nil {
 		listener.Close()
 		LogError("PCMTest", "sendStrmCommand error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1991,9 +2144,22 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 			} else {
 					LogInfo("TCP", "%s resumed stream on port %d", remote, streamDataPort)
 				}
-			}
+		}
 
-		case "STAT":
+	case "aude":
+		if !heloReceived {
+			LogInfo("TCP", "%s aude before HELO, ignoring", remote)
+			continue
+		}
+		LogInfo("TCP", "%s aude payload=%x", remote, payload)
+		if err := sendAudg(conn, -1); err != nil {
+			LogError("TCP", "%s error sending audg: %v", remote, err)
+		}
+		if err := sendAude(conn, true); err != nil {
+			LogError("TCP", "%s error sending aude: %v", remote, err)
+		}
+
+	case "STAT":
 			if !heloReceived {
 				LogInfo("TCP", "%s STAT before HELO, ignoring", remote)
 				continue
@@ -2043,6 +2209,9 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 				case 5: // volume change from knob
 					if len(payload) >= 3 {
 						vol := int(binary.BigEndian.Uint16(payload[1:3]))
+						clientVolumeMu.Lock()
+						clientVolume = vol
+						clientVolumeMu.Unlock()
 						LogInfo("TCP", "%s volume: %d", remote, vol)
 					} else {
 						LogInfo("TCP", "%s setd cmd=%d raw=%x", remote, cmd, payload)
@@ -2851,6 +3020,82 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 								handleRadiosMenu(respClid, reqPlayerId, m)
 							}
 							isRadioCmd = true
+						} else if cmd == "radiobrowser" {
+							cmdReq := parseCLIRequest(cmdArr, paramsObj)
+							if len(cmdReq.Args) > 0 {
+								subCmd := cmdReq.Args[0]
+								switch subCmd {
+							case "topvote":
+								limit := 100
+								if len(cmdReq.Args) > 2 {
+									if l, err := strconv.Atoi(cmdReq.Args[2]); err == nil && l > 0 && l <= 200 {
+										limit = l
+									}
+								}
+								if limit > 100 {
+									limit = 100
+								}
+								handleRadioBrowserTopVote(respClid, reqPlayerId, limit)
+								case "search":
+									query := ""
+									if s, ok := paramsObj["query"].(string); ok && s != "" && s != "__TAGGEDINPUT__" {
+										query = s
+									}
+									if query == "" && len(cmdReq.Args) > 1 {
+										arg := cmdReq.Args[1]
+										if _, err := strconv.Atoi(arg); err != nil {
+											query = arg
+										}
+									}
+									handleRadioBrowserSearch(respClid, reqPlayerId, query)
+								case "tags":
+									handleRadioBrowserTags(respClid, reqPlayerId)
+								case "tagstations":
+									tag := ""
+									if len(cmdReq.Args) > 1 {
+										tag = cmdReq.Args[1]
+									}
+									if tag == "" {
+										if s, ok := paramsObj["tag"].(string); ok {
+											tag = s
+										}
+									}
+									handleRadioBrowserTagStations(respClid, reqPlayerId, tag)
+								case "countries":
+									handleRadioBrowserCountries(respClid, reqPlayerId)
+								case "countrystations":
+									country := ""
+									if len(cmdReq.Args) > 1 {
+										country = cmdReq.Args[1]
+									}
+									if country == "" {
+										if s, ok := paramsObj["country"].(string); ok {
+											country = s
+										}
+									}
+									handleRadioBrowserCountryStations(respClid, reqPlayerId, country)
+							case "play":
+								stationUUID := ""
+								if s, ok := cmdReq.Params["stationuuid"]; ok && s != "" {
+									stationUUID = s
+								}
+								if stationUUID == "" {
+									for _, arg := range cmdReq.Args {
+										if strings.HasPrefix(arg, "stationuuid:") {
+											stationUUID = strings.TrimPrefix(arg, "stationuuid:")
+											break
+										}
+									}
+								}
+								LogInfo("RadioBrowser", "Play request: args=%v params=%v stationUUID=%s", cmdReq.Args, cmdReq.Params, stationUUID)
+								playRadioBrowserStation(respClid, reqPlayerId, stationUUID)
+								default:
+									handleRadioBrowserMenu(respClid, reqPlayerId)
+								}
+							} else {
+								handleRadioBrowserMenu(respClid, reqPlayerId)
+							}
+							isRadioCmd = true
 						} else {
 							for _, sub := range defaultSubmenus {
 								if sub["id"] == cmd {
@@ -2866,13 +3111,13 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 							}
 						}
 
-						if !isRadioCmd {
-							switch cmd {
-							case "menu":
-								buildMenuResponse(respClid, reqPlayerId, m)
-							case "status":
-								buildStatusResponse(respClid, reqPlayerId, cmdArr, m)
-							case "playlist":
+					if !isRadioCmd {
+						switch cmd {
+						case "menu":
+							buildMenuResponse(respClid, reqPlayerId, m)
+						case "status":
+							buildStatusResponse(respClid, reqPlayerId, cmdArr, m)
+						case "playlist":
 								buildPlaylistResponse(respClid, reqPlayerId, cmdArr, m)
 							case "artworkspec":
 								// artworkspec commands are fire-and-forget; return empty
@@ -3170,6 +3415,22 @@ func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
 		}
 		session.Mu.Unlock()
 	}
+
+	session.Mu.Lock()
+	rbItemID := fmt.Sprintf("item_%d", session.NextID)
+	session.NextID++
+	items = append(items, map[string]interface{}{
+		"id":     rbItemID,
+		"text":   "Radio Browser",
+		"weight": len(items) * 10,
+		"icon":   "/plugins/TuneIn/html/images/radio.png",
+		"actions": map[string]interface{}{
+			"go": map[string]interface{}{
+				"cmd": []interface{}{"radiobrowser"},
+			},
+		},
+	})
+	session.Mu.Unlock()
 
 	data := map[string]interface{}{
 		"count":     len(items),
@@ -3518,7 +3779,9 @@ func publishStreamError(playerId string, conn net.Conn, err error) {
 		errMsg = "Server returned incompatible response"
 	}
 
-	sendStrm(conn, 0, 0, title, errMsg, "", 5000)
+	if conn != nil {
+		sendStrm(conn, 0, 0, title, errMsg, "", 5000)
+	}
 
 	displayData := map[string]interface{}{
 		"display": map[string]interface{}{
@@ -3720,9 +3983,9 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 			map[string]interface{}{
 				"id":          0,
 				"title":       title,
-				"track":       title,
+				"track":       "",
 				"artist":      desc,
-				"album":       desc,
+				"album":       "",
 				"text":        stationName,
 				"artwork_url": icon,
 				"icon":        icon,
@@ -3743,9 +4006,9 @@ func buildStatusResponse(respClid, playerId string, cmdArr []interface{}, m *Ser
 			map[string]interface{}{
 				"id":          0,
 				"title":       title,
-				"track":       title,
+				"track":       "",
 				"artist":      desc,
-				"album":       desc,
+				"album":       "",
 				"text":        stationName,
 				"artwork_url": icon,
 				"icon":        icon,
@@ -3815,9 +4078,9 @@ func buildPlaylistResponse(respClid, playerId string, cmdArr []interface{}, m *S
 			map[string]interface{}{
 				"id":          0,
 				"title":       title,
-				"track":       title,
+				"track":       "",
 				"artist":      desc,
-				"album":       desc,
+				"album":       "",
 				"text":        stationName,
 				"artwork_url": icon,
 				"icon":        icon,
@@ -3849,6 +4112,7 @@ func buildPlaylistResponse(respClid, playerId string, cmdArr []interface{}, m *S
 func buildSlimRequestResponse(respClid, playerId string) map[string]interface{} {
 	sc := getStreamingClient(respClid)
 	if sc == nil {
+		LogInfo("RadioBrowser", "buildSlimRequestResponse: no streaming client for %s", respClid)
 		return map[string]interface{}{"response": []interface{}{}}
 	}
 
@@ -3858,8 +4122,10 @@ func buildSlimRequestResponse(respClid, playerId string) map[string]interface{} 
 	sc.pendingMu.Unlock()
 
 	if data != nil {
+		LogInfo("RadioBrowser", "buildSlimRequestResponse: returning data with count=%v", data["count"])
 		return data
 	}
+	LogInfo("RadioBrowser", "buildSlimRequestResponse: no pending data for %s", respClid)
 	return map[string]interface{}{"response": []interface{}{}}
 }
 
