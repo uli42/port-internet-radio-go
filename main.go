@@ -2812,9 +2812,36 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 								}
 							} else {
 								handleRadioBrowserMenu(respClid, reqPlayerId)
+						}
+						isRadioCmd = true
+					} else if cmd == "rnp" {
+						cmdReq := parseCLIRequest(cmdArr, paramsObj)
+						if len(cmdReq.Args) > 0 {
+							subCmd := cmdReq.Args[0]
+							if subCmd == "broadcaster" {
+								broadcasterName := ""
+								if len(cmdReq.Args) > 1 {
+									broadcasterName = cmdReq.Args[1]
+								}
+								if broadcasterName == "" {
+									handleRNPMenu(respClid, reqPlayerId)
+								} else {
+									handleRNPBroadcaster(respClid, reqPlayerId, broadcasterName)
+								}
+							} else if subCmd == "visit" {
+								broadcasterName := ""
+								if len(cmdReq.Args) > 1 {
+									broadcasterName = cmdReq.Args[1]
+								}
+								handleRNPVisit(respClid, reqPlayerId, broadcasterName)
+							} else {
+								handleRNPMenu(respClid, reqPlayerId)
 							}
-							isRadioCmd = true
 						} else {
+							handleRNPMenu(respClid, reqPlayerId)
+						}
+						isRadioCmd = true
+					} else {
 							for _, sub := range defaultSubmenus {
 								if sub["id"] == cmd {
 									cmdReq := parseCLIRequest(cmdArr, paramsObj)
@@ -3145,6 +3172,19 @@ func handleRadiosMenu(respClid, playerId string, m *ServerMetadata) {
 		"actions": map[string]interface{}{
 			"go": map[string]interface{}{
 				"cmd": []interface{}{"radiobrowser"},
+			},
+		},
+	})
+	rnpItemID := fmt.Sprintf("item_%d", session.NextID)
+	session.NextID++
+	items = append(items, map[string]interface{}{
+		"id":     rnpItemID,
+		"text":   "Radio Now Playing",
+		"weight": len(items) * 10,
+		"icon":   "/plugins/radionowplaying/html/images/icon.png",
+		"actions": map[string]interface{}{
+			"go": map[string]interface{}{
+				"cmd": []interface{}{"rnp"},
 			},
 		},
 	})
