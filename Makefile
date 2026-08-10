@@ -1,5 +1,11 @@
 .PHONY: all build-amd64 build-squeezebox clean run setup-go1.14 generate setup-upx
 
+include_png_assets ?= 0
+
+ifeq ($(include_png_assets),1)
+  BUILD_TAGS = -tags include_png_assets
+endif
+
 all: build-amd64 build-squeezebox
 
 # Generate assets.go by scanning the plugins/ directory
@@ -21,7 +27,7 @@ setup-upx:
 # Build statically linked binary for x86_64 Linux (using host system compiler)
 build-amd64: generate setup-upx
 	@echo "Building for x86_64 Linux..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o server_amd64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(BUILD_TAGS) -ldflags="-s -w" -o server_amd64 .
 	@echo "Compressing with UPX..."
 	./upx/upx --best --lzma server_amd64
 
@@ -38,7 +44,7 @@ setup-go1.14:
 # Build statically linked binary for Squeezebox Radio (ARMv5te, using Go 1.14 for kernel 2.6.26 compatibility)
 build-squeezebox: setup-go1.14 generate setup-upx
 	@echo "Building for Squeezebox Radio (ARMv5, Linux kernel 2.6.26) using Go 1.14..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 ./go1.14/go/bin/go build -ldflags="-s -w" -o server_arm5 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 ./go1.14/go/bin/go build $(BUILD_TAGS) -ldflags="-s -w" -o server_arm5 .
 	@echo "Compressing with UPX..."
 	./upx/upx --best --lzma server_arm5
 
