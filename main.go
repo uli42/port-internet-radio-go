@@ -2032,8 +2032,8 @@ func handleSlimProtoConn(conn net.Conn, m *ServerMetadata) {
 	}
 }
 
-// pushServerstatusToAll pushes a serverstatus event to all streaming CometD clients.
-func pushServerstatusToAll(m *ServerMetadata) {
+// buildServerStatusData constructs the common serverstatus data payload.
+func buildServerStatusData(m *ServerMetadata) map[string]interface{} {
 	players := getConnectedPlayers()
 	playerCount := len(players)
 
@@ -2051,21 +2051,27 @@ func pushServerstatusToAll(m *ServerMetadata) {
 	}
 
 	data := map[string]interface{}{
-		"version":         m.Version,
-		"uuid":            m.UUID,
-		"name":            m.Name,
-		"ip":              m.IPAddress,
-		"port":            m.JSONPort,
-		"cliport":         m.CLIPort,
-		"compatible":      true,
-		"player count":    playerCount,
-		"players_loop":    playersLoop,
-		"canMusicFolder":  true,
-		"canRandomPlay":   true,
+		"version":          m.Version,
+		"uuid":             m.UUID,
+		"name":             m.Name,
+		"ip":               m.IPAddress,
+		"port":             m.JSONPort,
+		"cliport":          m.CLIPort,
+		"compatible":       true,
+		"player count":     playerCount,
+		"players_loop":     playersLoop,
+		"canMusicFolder":   true,
+		"canRandomPlay":    true,
 		"canInternetRadio": true,
-		"canRemoteStream": true,
-		"lang":            "EN",
+		"canRemoteStream":  true,
+		"lang":             "EN",
 	}
+	return data
+}
+
+// pushServerstatusToAll pushes a serverstatus event to all streaming CometD clients.
+func pushServerstatusToAll(m *ServerMetadata) {
+	data := buildServerStatusData(m)
 
 	streamingClientsMu.Lock()
 	defer streamingClientsMu.Unlock()
@@ -2545,38 +2551,12 @@ func handleCometdStreaming(w *minimalResponseWriter, clientId string, initialRes
 	// Push first serverstatus event immediately so the client gets initial player data
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		players := getConnectedPlayers()
-		pl := make([]map[string]interface{}, 0, len(players))
-		for _, p := range players {
-			pl = append(pl, map[string]interface{}{
-				"playerid":  p.MAC,
-				"name":      p.Name,
-				"model":     p.Model,
-				"connected": 1,
-				"power":     1,
-				"uuid":      p.UUID,
-				"ip":        m.IPAddress,
-			})
-		}
+		data := buildServerStatusData(m)
+
 		sc.events <- []interface{}{
 			map[string]interface{}{
 				"channel": "/" + clientId + "/slim/serverstatus",
-				"data": map[string]interface{}{
-					"version":          m.Version,
-					"uuid":             m.UUID,
-					"name":             m.Name,
-					"ip":               m.IPAddress,
-					"port":             m.JSONPort,
-					"cliport":          m.CLIPort,
-					"compatible":       true,
-					"player count":     len(players),
-					"players_loop":     pl,
-					"canMusicFolder":   true,
-					"canRandomPlay":    true,
-					"canInternetRadio": true,
-					"canRemoteStream":  true,
-					"lang":             "EN",
-				},
+				"data":    data,
 			},
 		}
 	}()
@@ -3906,40 +3886,13 @@ func pushServerStatus(respClid string, id interface{}, m *ServerMetadata, done c
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 
-		players := getConnectedPlayers()
-		pl := make([]map[string]interface{}, 0, len(players))
-		for _, p := range players {
-			pl = append(pl, map[string]interface{}{
-				"playerid":  p.MAC,
-				"name":      p.Name,
-				"model":     p.Model,
-				"connected": 1,
-				"power":     1,
-				"uuid":      p.UUID,
-				"ip":        m.IPAddress,
-			})
-		}
+		data := buildServerStatusData(m)
 
 		sc.events <- []interface{}{
 			map[string]interface{}{
 				"channel": "/" + respClid + "/slim/serverstatus",
 				"id":      id,
-				"data": map[string]interface{}{
-					"version":          m.Version,
-					"uuid":             m.UUID,
-					"name":             m.Name,
-					"ip":               m.IPAddress,
-					"port":             m.JSONPort,
-					"cliport":          m.CLIPort,
-					"compatible":       true,
-					"player count":     len(players),
-					"players_loop":     pl,
-					"canMusicFolder":   true,
-					"canRandomPlay":    true,
-					"canInternetRadio": true,
-					"canRemoteStream":  true,
-					"lang":             "EN",
-				},
+				"data":    data,
 			},
 		}
 		if done != nil {
