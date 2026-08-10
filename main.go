@@ -1564,8 +1564,8 @@ type streamFetchResult struct {
 	err         error
 }
 
-func handleStreamStart(w http.ResponseWriter, r *http.Request) {
-	streamURL := r.URL.Query().Get("url")
+func handleStreamStart(w *minimalResponseWriter, r *minimalRequest) {
+	streamURL := r.query["url"]
 	if streamURL != "" {
 		streamURL = resolveStreamURL(streamURL)
 	}
@@ -1574,11 +1574,11 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	conn := slimConn
 	slimConnMu.Unlock()
 	if conn == nil {
-		http.Error(w, "no SlimProto connection", http.StatusServiceUnavailable)
+		w.WriteHeader(http.StatusServiceUnavailable); w.Write([]byte("no SlimProto connection"))
 		return
 	}
-	streamFile := r.URL.Query().Get("file")
-	playerId := normalizePlayerId(r.URL.Query().Get("player"))
+	streamFile := r.query["file"]
+	playerId := normalizePlayerId(r.query["player"])
 
 	if streamURL != "" {
 		pb := getPlayerPlayback(playerId)
@@ -1646,7 +1646,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	listener, err := listenTCP4(":0")
 	if err != nil {
 		LogError("Stream", "listen error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError); w.Write([]byte(err.Error()))
 		return
 	}
 	port := uint16(listener.Addr().(*net.TCPAddr).Port)
@@ -1669,7 +1669,7 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	if err := sendStrmCommand(conn, 's', port, 'm', 0, 0, 0, 0); err != nil {
 		listener.Close()
 		LogError("Stream", "sendStrmCommand error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError); w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -1807,10 +1807,10 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if streamURL != "" {
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header()["Content-Type"] = "text/plain"
 		fmt.Fprintf(w, "streaming %s on port %d\n", streamURL, port)
 	} else {
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header()["Content-Type"] = "text/plain"
 		fmt.Fprintf(w, "streaming file %s on port %d\n", streamFile, port)
 	}
 }
@@ -2236,29 +2236,29 @@ var placeholderPNG = []byte{
 
 // handleArtwork serves placeholder images for artwork requests.
 // The SqueezePlay client requests images at /music/<id>/cover[_spec][.ext]
-func handleArtwork(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
+func handleArtwork(w *minimalResponseWriter, r *minimalRequest) {
+	path := r.path
 	LogInfo("HTTP", "artwork request: %s", path)
 
-	w.Header().Set("Content-Type", "image/png")
-	w.Header().Set("Cache-Control", "max-age=86400")
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(placeholderPNG)))
+	w.Header()["Content-Type"] = "image/png"
+	w.Header()["Cache-Control"] = "max-age=86400"
+	w.Header()["Content-Length"] = fmt.Sprintf("%d", len(placeholderPNG))
 	w.WriteHeader(http.StatusOK)
 	w.Write(placeholderPNG)
 }
 
-func handlePlugins(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
+func handlePlugins(w *minimalResponseWriter, r *minimalRequest) {
+	path := r.path
 	if strings.Contains(path, "..") {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		w.WriteHeader(http.StatusForbidden); w.Write([]byte("Forbidden"))
 		return
 	}
 	if strings.HasPrefix(path, "/plugins/") {
 		// Try embedded assets first
 		if data, ok := embeddedAssets[path]; ok {
-			w.Header().Set("Content-Type", "image/png")
-			w.Header().Set("Cache-Control", "max-age=86400")
-			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+			w.Header()["Content-Type"] = "image/png"
+			w.Header()["Cache-Control"] = "max-age=86400"
+			w.Header()["Content-Length"] = fmt.Sprintf("%d", len(data))
 			w.WriteHeader(http.StatusOK)
 			w.Write(data)
 			return
@@ -2268,9 +2268,9 @@ func handlePlugins(w http.ResponseWriter, r *http.Request) {
 		cleanPath := stripImageSizeSuffix(path)
 		if cleanPath != path {
 			if data, ok := embeddedAssets[cleanPath]; ok {
-				w.Header().Set("Content-Type", "image/png")
-				w.Header().Set("Cache-Control", "max-age=86400")
-				w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+				w.Header()["Content-Type"] = "image/png"
+				w.Header()["Cache-Control"] = "max-age=86400"
+				w.Header()["Content-Length"] = fmt.Sprintf("%d", len(data))
 				w.WriteHeader(http.StatusOK)
 				w.Write(data)
 				return
@@ -2280,13 +2280,13 @@ func handlePlugins(w http.ResponseWriter, r *http.Request) {
 		// Fallback to local files if present
 		localPath := "." + path
 		if _, err := os.Stat(localPath); err == nil {
-			http.ServeFile(w, r, localPath)
+			serveLocalFile(w, r, localPath)
 			return
 		}
 		cleanLocalPath := stripImageSizeSuffix(localPath)
 		if cleanLocalPath != localPath {
 			if _, err := os.Stat(cleanLocalPath); err == nil {
-				http.ServeFile(w, r, cleanLocalPath)
+				serveLocalFile(w, r, cleanLocalPath)
 				return
 			}
 		}
@@ -2312,8 +2312,8 @@ var (
 	cacheTotalBytes = 0
 )
 
-func handleImageProxy(w http.ResponseWriter, r *http.Request) {
-	u := r.URL.Query().Get("u")
+func handleImageProxy(w *minimalResponseWriter, r *minimalRequest) {
+	u := r.query["u"]
 	if u == "" {
 		handleArtwork(w, r)
 		return
@@ -2335,15 +2335,15 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 	if found {
 		LogInfo("ImageProxy", "[HIT] Serving from cache: %s", u)
 		if cached.ContentType != "" {
-			w.Header().Set("Content-Type", cached.ContentType)
+			w.Header()["Content-Type"] = cached.ContentType
 		}
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(cached.Body)))
+		w.Header()["Content-Length"] = fmt.Sprintf("%d", len(cached.Body))
 		w.WriteHeader(http.StatusOK)
 		w.Write(cached.Body)
 		return
 	}
 
-	LogInfo("ImageProxy", "[MISS] Fetching remote URL: %s (original: %s)", u, r.URL.Query().Get("u"))
+	LogInfo("ImageProxy", "[MISS] Fetching remote URL: %s (original: %s)", u, r.query["u"])
 
 	client := &http.Client{
 		Timeout: 5 * time.Second,
@@ -2394,9 +2394,9 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 	imageCacheMu.Unlock()
 
 	if ct != "" {
-		w.Header().Set("Content-Type", ct)
+		w.Header()["Content-Type"] = ct
 	}
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(bodyBytes)))
+	w.Header()["Content-Length"] = fmt.Sprintf("%d", len(bodyBytes))
 	w.WriteHeader(http.StatusOK)
 	w.Write(bodyBytes)
 }
@@ -2404,56 +2404,51 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 
 // startHTTPServer starts the HTTP CometD server (for JSON-RPC and CometD
 func startHTTPServer(m *ServerMetadata) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/stream/play", handleStreamStart)
-			mux.HandleFunc("/cometd", func(w http.ResponseWriter, r *http.Request) {
-		handleCometd(w, r, m)
-	})
-	mux.HandleFunc("/jsonrpc", func(w http.ResponseWriter, r *http.Request) {
-		handleJsonRpc(w, r, m)
-	})
-	mux.HandleFunc("/music/", handleArtwork)
-	mux.HandleFunc("/contributor/", handleArtwork)
-	mux.HandleFunc("/imageproxy", handleImageProxy)
-	mux.HandleFunc("/imageproxy/", handleImageProxy)
-	mux.HandleFunc("/html/", handleArtwork)
-	mux.HandleFunc("/plugins/", handlePlugins)
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// If it looks like an image/artwork request, serve placeholder
-		if r.URL.Path != "/" && r.URL.Path != "/cometd" && r.URL.Path != "/jsonrpc" {
-			handleArtwork(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"ok":true}`))
-	})
-
 	LogInfo("general", "Starting HTTP server on port %s...", m.JSONPort)
 	hl, err := listenTCP4(":"+m.JSONPort)
 	if err != nil {
 		LogError("general", "HTTP server listen error: %v", err)
 		os.Exit(1)
 	}
-	if err := http.Serve(hl, mux); err != nil {
-		LogError("general", "HTTP server error: %v", err)
-		os.Exit(1)
-	}
+	serveHTTP(hl, func(w *minimalResponseWriter, r *minimalRequest) {
+		switch {
+		case r.path == "/stream/play":
+			handleStreamStart(w, r)
+		case r.path == "/cometd":
+			handleCometd(w, r, m)
+		case r.path == "/jsonrpc":
+			handleJsonRpc(w, r, m)
+		case r.path == "/imageproxy" || r.path == "/imageproxy/":
+			handleImageProxy(w, r)
+		case strings.HasPrefix(r.path, "/music/") || strings.HasPrefix(r.path, "/contributor/") || strings.HasPrefix(r.path, "/html/"):
+			handleArtwork(w, r)
+		case strings.HasPrefix(r.path, "/plugins/"):
+			handlePlugins(w, r)
+		default:
+			if r.path != "/" && r.path != "/cometd" && r.path != "/jsonrpc" {
+				handleArtwork(w, r)
+				return
+			}
+			w.Header()["Content-Type"] = "application/json"
+			w.Write([]byte(`{"ok":true}`))
+		}
+	})
 }
 
 // handleCometd handles CometD protocol requests
-func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
-	if r.Method != http.MethodPost {
+func handleCometd(w *minimalResponseWriter, r *minimalRequest, m *ServerMetadata) {
+	if r.method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	var reqs []CometdRequest
-	if err := json.NewDecoder(r.Body).Decode(&reqs); err != nil {
+	if err := json.Unmarshal(r.body, &reqs); err != nil {
 		LogError("CometD", "failed to decode request: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	LogInfo("CometD", "from %s", r.RemoteAddr)
+	LogInfo("CometD", "from %s", r.remoteAddr)
 	for i, req := range reqs {
 		LogInfo("CometD", "<- req[%d] channel=%q clientId=%q", i, req.Channel, req.ClientId)
 	}
@@ -2496,8 +2491,8 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 				},
 			}
 			body, _ := json.Marshal(resps)
-			w.Header().Set("Content-Type", "application/json")
-			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+			w.Header()["Content-Type"] = "application/json"
+			w.Header()["Content-Length"] = fmt.Sprintf("%d", len(body))
 			w.WriteHeader(http.StatusOK)
 			w.Write(body)
 			return
@@ -2526,7 +2521,7 @@ func handleCometd(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 	}
 }
 
-func handleCometdNormal(w http.ResponseWriter, resps []CometdRequest, isHandshake bool) {
+func handleCometdNormal(w *minimalResponseWriter, resps []CometdRequest, isHandshake bool) {
 	body, err := json.Marshal(resps)
 	if err != nil {
 		LogError("CometD", "marshal error: %v", err)
@@ -2534,20 +2529,13 @@ func handleCometdNormal(w http.ResponseWriter, resps []CometdRequest, isHandshak
 		return
 	}
 	LogInfo("CometD", "response body: %s", string(body))
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+	w.Header()["Content-Type"] = "application/json"
+	w.Header()["Content-Length"] = fmt.Sprintf("%d", len(body))
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
 }
 
-func handleCometdStreaming(w http.ResponseWriter, clientId string, initialResps []CometdRequest, sc *StreamingClient, m *ServerMetadata) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		LogInfo("CometD", "streaming not supported by ResponseWriter")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
+func handleCometdStreaming(w *minimalResponseWriter, clientId string, initialResps []CometdRequest, sc *StreamingClient, m *ServerMetadata) {
 	// Mark clientId on responses
 	for i := range initialResps {
 		if initialResps[i].ClientId == "" {
@@ -2555,8 +2543,8 @@ func handleCometdStreaming(w http.ResponseWriter, clientId string, initialResps 
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header()["Content-Type"] = "application/json"
+	w.Header()["Transfer-Encoding"] = "chunked"
 	w.WriteHeader(http.StatusOK)
 
 	// Write initial response
@@ -2565,7 +2553,7 @@ func handleCometdStreaming(w http.ResponseWriter, clientId string, initialResps 
 		LogError("CometD", "streaming initial write error: %v", err)
 		return
 	}
-	flusher.Flush()
+	w.Flush()
 	LogInfo("CometD", "streaming started for clientId=%s", clientId)
 
 	// Push first serverstatus event immediately so the client gets initial player data
@@ -2621,14 +2609,14 @@ func handleCometdStreaming(w http.ResponseWriter, clientId string, initialResps 
 				LogError("CometD", "streaming write error: %v", err)
 				return
 			}
-			flusher.Flush()
+			w.Flush()
 		case <-ticker.C:
 			// Send an empty JSON array to keep the chunked HTTP connection alive
 			if _, err := w.Write([]byte("[]\n")); err != nil {
 				LogError("CometD", "streaming keepalive write error for clientId=%s: %v", clientId, err)
 				return
 			}
-			flusher.Flush()
+			w.Flush()
 		}
 	}
 }
@@ -3975,9 +3963,9 @@ func pushServerStatus(respClid string, id interface{}, m *ServerMetadata, done c
 }
 
 // handleJsonRpc handles JSON-RPC protocol requests
-func handleJsonRpc(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
+func handleJsonRpc(w *minimalResponseWriter, r *minimalRequest, m *ServerMetadata) {
 	var req JsonRpcRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.Unmarshal(r.body, &req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -3999,7 +3987,7 @@ func handleJsonRpc(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 	}
 
 	resp := JsonRpcResponse{Id: req.Id, Result: make(map[string]interface{})}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header()["Content-Type"] = "application/json"
 	json.NewEncoder(w).Encode(resp)
 }
 
