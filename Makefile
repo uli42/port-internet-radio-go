@@ -1,4 +1,4 @@
-.PHONY: all build-amd64 build-squeezebox clean run setup-go1.14 generate
+.PHONY: all build-amd64 build-squeezebox clean run setup-go1.14 generate setup-upx
 
 all: build-amd64 build-squeezebox
 
@@ -7,10 +7,23 @@ generate:
 	@echo "Generating embedded asset mapping in assets.go..."
 	python3 generate_assets.py
 
+# Download UPX (Ultimate Packer for eXecutables) for binary compression
+setup-upx:
+	@if [ ! -f "upx/upx" ]; then \
+		echo "Downloading UPX for binary compression..."; \
+		mkdir -p upx; \
+		curl -sSL -o /tmp/upx.tar.xz https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz || wget -q -O /tmp/upx.tar.xz https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz; \
+		tar -xf /tmp/upx.tar.xz -C /tmp; \
+		cp /tmp/upx-4.2.4-amd64_linux/upx upx/; \
+		rm -rf /tmp/upx.tar.xz /tmp/upx-4.2.4-amd64_linux; \
+	fi
+
 # Build statically linked binary for x86_64 Linux (using host system compiler)
-build-amd64: generate
+build-amd64: generate setup-upx
 	@echo "Building for x86_64 Linux..."
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o server_amd64 .
+	@echo "Compressing with UPX..."
+	./upx/upx --best --lzma server_amd64
 
 # Download and set up Go 1.14.15 (the last Go compiler fully supporting Linux kernel versions below 2.6.32)
 setup-go1.14:
@@ -23,9 +36,11 @@ setup-go1.14:
 	fi
 
 # Build statically linked binary for Squeezebox Radio (ARMv5te, using Go 1.14 for kernel 2.6.26 compatibility)
-build-squeezebox: setup-go1.14 generate
+build-squeezebox: setup-go1.14 generate setup-upx
 	@echo "Building for Squeezebox Radio (ARMv5, Linux kernel 2.6.26) using Go 1.14..."
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 ./go1.14/go/bin/go build -ldflags="-s -w" -o server_arm5 .
+	@echo "Compressing with UPX..."
+	./upx/upx --best --lzma server_arm5
 
 # Run the local server
 run: build-amd64
@@ -34,4 +49,4 @@ run: build-amd64
 # Clean built binaries and legacy compiler
 clean:
 	rm -f server server_amd64 server_arm5 assets.go
-	rm -rf go1.14
+	rm -rf go1.14 upx
