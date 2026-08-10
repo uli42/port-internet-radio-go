@@ -2199,14 +2199,6 @@ func buildLegacyResponse(m *ServerMetadata) []byte {
 	return rsp
 }
 
-// joinMulticast tries to join the multicast group for multicasting support
-func joinMulticast(conn *net.UDPConn, group net.IP) error {
-	if c, err := net.ListenMulticastUDP("udp4", nil, &net.UDPAddr{IP: group, Port: DefaultPort}); err == nil {
-		defer c.Close()
-	}
-	return nil
-}
-
 // A 40x40 gray PNG placeholder image embedded directly.
 // Generated as a minimal valid PNG with a neutral gray fill.
 var placeholderPNG = []byte{
@@ -2330,9 +2322,7 @@ func handleImageProxy(w *minimalResponseWriter, r *minimalRequest) {
 
 	LogInfo("ImageProxy", "[MISS] Fetching remote URL: %s (original: %s)", u, r.query["u"])
 
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	client := newHTTPClient(5*time.Second, 0)
 	resp, err := client.Get(u)
 	if err != nil {
 		LogError("ImageProxy", "Fetch error: %v", err)
@@ -4086,59 +4076,6 @@ func listenUDP4(port int) (*net.UDPConn, error) {
 	return udpConn, nil
 }
 
-// listenMulticastUDP4 creates a multicast *net.UDPConn and joins the specified multicast group using raw syscalls.
-func listenMulticastUDP4(mcastGroup string, port int) (*net.UDPConn, error) {
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1); err != nil {
-		syscall.Close(fd)
-		return nil, err
-	}
-
-	saddr := &syscall.SockaddrInet4{
-		Port: port,
-		Addr: [4]byte{0, 0, 0, 0},
-	}
-	if err := syscall.Bind(fd, saddr); err != nil {
-		syscall.Close(fd)
-		return nil, err
-	}
-
-	ip := net.ParseIP(mcastGroup).To4()
-	if ip == nil {
-		syscall.Close(fd)
-		return nil, fmt.Errorf("invalid multicast group: %s", mcastGroup)
-	}
-
-	mreq := &syscall.IPMreq{
-		Multiaddr: [4]byte{ip[0], ip[1], ip[2], ip[3]},
-		Interface: [4]byte{0, 0, 0, 0},
-	}
-	if err := syscall.SetsockoptIPMreq(fd, syscall.IPPROTO_IP, syscall.IP_ADD_MEMBERSHIP, mreq); err != nil {
-		syscall.Close(fd)
-		return nil, err
-	}
-
-	file := os.NewFile(uintptr(fd), "udp-mcast-listener")
-	defer file.Close()
-
-	conn, err := net.FilePacketConn(file)
-	if err != nil {
-		return nil, err
-	}
-
-	udpConn, ok := conn.(*net.UDPConn)
-	if !ok {
-		conn.Close()
-		return nil, fmt.Errorf("not a UDP connection")
-	}
-
-	return udpConn, nil
-}
-
 func syncTimeWithNTP() {
 	go func() {
 		// Sync time on startup and then periodically
@@ -4222,9 +4159,7 @@ func resumeUpstream(streamURL string, offset int64) (io.ReadCloser, int, error) 
 	req.Header.Set("User-Agent", "SlimProto/1.0")
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
 
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
+	client := newHTTPClient(10*time.Second, 0)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, 0, err
