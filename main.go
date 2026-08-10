@@ -185,13 +185,7 @@ func (cs *ClientSession) Reset() {
 
 // Fetch and parse an OPML feed from a URL
 func fetchOPML(urlStr string) (*OPML, error) {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{
-		Transport: tr,
-		Timeout:   10 * time.Second,
-	}
+	client := newHTTPClient(10 * time.Second)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
 		return nil, err
@@ -321,14 +315,18 @@ func resolveStreamURL(streamURL string) string {
 	return streamURL
 }
 
-func fetchPlaylistOrTuneIn(urlStr string) string {
+func newHTTPClient(timeout time.Duration) *http.Client {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := &http.Client{
+	return &http.Client{
 		Transport: tr,
-		Timeout:   5 * time.Second,
+		Timeout:   timeout,
 	}
+}
+
+func fetchPlaylistOrTuneIn(urlStr string) string {
+	client := newHTTPClient(5 * time.Second)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
 		return ""
@@ -1081,18 +1079,6 @@ func handleButtonPress(playerId string, btnName string, btnArg string) {
 		}
 	}
 
-	switch btnName {
-		case "pause", "onepause":
-		if btnArg == "0" {
-			resumePlayer(playerId, conn)
-		} else {
-			pausePlayer(playerId)
-		}
-	case "play", "unpause":
-		resumePlayer(playerId, conn)
-	default:
-		LogInfo("Button", "unhandled button: %s", btnName)
-	}
 }
 
 func handleJiveFavorites(respClid, playerId string, cmdArr []interface{}, paramsObj map[string]interface{}) {
