@@ -1,4 +1,4 @@
-//go:build include_png_assets
+// +build include_png_assets
 
 package main
 
