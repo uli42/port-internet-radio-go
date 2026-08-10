@@ -185,7 +185,7 @@ func (cs *ClientSession) Reset() {
 
 // Fetch and parse an OPML feed from a URL
 func fetchOPML(urlStr string) (*OPML, error) {
-	client := newHTTPClient(10 * time.Second)
+	client := newHTTPClient(10*time.Second, 0)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
 		return nil, err
@@ -315,9 +315,14 @@ func resolveStreamURL(streamURL string) string {
 	return streamURL
 }
 
-func newHTTPClient(timeout time.Duration) *http.Client {
+func newHTTPClient(timeout time.Duration, dialTimeout time.Duration) *http.Client {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	if dialTimeout > 0 {
+		tr.DialContext = (&net.Dialer{
+			Timeout: dialTimeout,
+		}).DialContext
 	}
 	return &http.Client{
 		Transport: tr,
@@ -326,7 +331,7 @@ func newHTTPClient(timeout time.Duration) *http.Client {
 }
 
 func fetchPlaylistOrTuneIn(urlStr string) string {
-	client := newHTTPClient(5 * time.Second)
+	client := newHTTPClient(5*time.Second, 0)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
 		return ""
@@ -1223,13 +1228,7 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 	// Start upstream fetch early so data may be ready when the player connects
 	fetchCh := make(chan streamFetchResult, 1)
 	go func() {
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			DialContext: (&net.Dialer{
-				Timeout: 10 * time.Second,
-			}).DialContext,
-		}
-		insecureClient := &http.Client{Transport: tr}
+		insecureClient := newHTTPClient(0, 10*time.Second)
 		req, err := http.NewRequest("GET", streamURL, nil)
 		if err != nil {
 			LogError("Stream", "request create failed: %v", err)
@@ -1581,13 +1580,7 @@ func handleStreamStart(w *minimalResponseWriter, r *minimalRequest) {
 	if streamURL != "" {
 		fetchCh = make(chan streamFetchResult, 1)
 		go func() {
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-				DialContext: (&net.Dialer{
-					Timeout: 10 * time.Second,
-				}).DialContext,
-			}
-			insecureClient := &http.Client{Transport: tr}
+			insecureClient := newHTTPClient(0, 10*time.Second)
 			resp, err := insecureClient.Get(streamURL)
 			if err != nil {
 				LogError("Stream", "upstream fetch failed after %v: %v", time.Since(streamStartTime), err)

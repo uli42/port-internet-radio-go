@@ -38,7 +38,7 @@ type RadioBrowserCountry struct {
 }
 
 func radioBrowserRequest(endpoint string) ([]byte, error) {
-	client := newHTTPClient(10 * time.Second)
+	client := newHTTPClient(10*time.Second, 0)
 	reqURL := radioBrowserBaseURL + endpoint
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
