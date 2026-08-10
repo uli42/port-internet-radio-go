@@ -4,12 +4,10 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/json"
-	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"math/rand"
 	"net"
 	"net/http"
@@ -17,7 +15,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,29 +28,102 @@ const (
 )
 
 // OPML schemas for parsing TuneIn responses
+func isAllHex(s string) bool {
+	for _, r := range s {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+			return false
+		}
+	}
+	return len(s) > 0
+}
+
+func extractClientID(path string) string {
+	for i := 0; i < len(path)-10; i++ {
+		if path[i] == '/' {
+			segment := path[i+1 : i+9]
+			if isAllHex(segment) && path[i+9] == '/' {
+				return segment
+			}
+		}
+	}
+	return ""
+}
+
+func isDigits(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return len(s) > 0
+}
+
+func isLetters(s string) bool {
+	for _, r := range s {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')) {
+			return false
+		}
+	}
+	return len(s) > 0
+}
+
+func stripImageSizeSuffix(u string) string {
+	dotIdx := strings.LastIndex(u, ".")
+	if dotIdx == -1 {
+		return u
+	}
+	ext := u[dotIdx:]
+	prefix := u[:dotIdx]
+	idx := strings.LastIndex(prefix, "_")
+	if idx == -1 {
+		return u
+	}
+	after := prefix[idx+1:]
+	xPos := strings.Index(after, "x")
+	if xPos <= 0 {
+		return u
+	}
+	w := after[:xPos]
+	if !isDigits(w) {
+		return u
+	}
+	rest := after[xPos+1:]
+	if rest == "" {
+		return u
+	}
+	if isDigits(rest) {
+		return prefix[:idx] + ext
+	}
+	if underscoreIdx := strings.Index(rest, "_"); underscoreIdx != -1 {
+		if isDigits(rest[:underscoreIdx]) && len(rest) == underscoreIdx+2 && isLetters(rest[underscoreIdx+1:]) {
+			return prefix[:idx] + ext
+		}
+	}
+	return u
+}
+
 type OPML struct {
-	XMLName xml.Name  `xml:"opml"`
-	Version string    `xml:"version,attr"`
-	Title   string    `xml:"head>title"`
-	Items   []Outline `xml:"body>outline"`
+	Version string
+	Title   string
+	Items   []Outline
 }
 
 type Outline struct {
-	Type        string    `xml:"type,attr"`
-	Text        string    `xml:"text,attr"`
-	URL         string    `xml:"URL,attr"`
-	Key         string    `xml:"key,attr"`
-	Bitrate     string    `xml:"bitrate,attr"`
-	Reliability string    `xml:"reliability,attr"`
-	Subtext     string    `xml:"subtext,attr"`
-	GenreID     string    `xml:"genre_id,attr"`
-	Formats     string    `xml:"formats,attr"`
-	Item        string    `xml:"item,attr"`
-	Image       string    `xml:"image,attr"`
-	PresetID    string    `xml:"preset_id,attr"`
-	Playing     string    `xml:"playing,attr"`
-	PlayingImg  string    `xml:"playing_image,attr"`
-	Outlines    []Outline `xml:"outline"`
+	Type        string
+	Text        string
+	URL         string
+	Key         string
+	Bitrate     string
+	Reliability string
+	Subtext     string
+	GenreID     string
+	Formats     string
+	Item        string
+	Image       string
+	PresetID    string
+	Playing     string
+	PlayingImg  string
+	Outlines    []Outline
 }
 
 type MenuFeed struct {
@@ -137,11 +207,90 @@ func fetchOPML(urlStr string) (*OPML, error) {
 		return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
 	}
 
-	var opml OPML
-	if err := xml.NewDecoder(resp.Body).Decode(&opml); err != nil {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		return nil, err
 	}
-	return &opml, nil
+
+	opml := &OPML{
+		Items: parseOPMLOutlines(string(body)),
+	}
+	return opml, nil
+}
+
+func parseOPMLOutlines(data string) []Outline {
+	var items []Outline
+	i := 0
+	for i < len(data) {
+		idx := strings.Index(data[i:], "<outline")
+		if idx == -1 {
+			break
+		}
+		i += idx
+		endIdx := strings.Index(data[i:], "/>")
+		if endIdx == -1 {
+			break
+		}
+		tagContent := data[i+8 : i+endIdx]
+		items = append(items, parseOutlineAttrs(tagContent))
+		i += endIdx + 2
+	}
+	return items
+}
+
+func parseOutlineAttrs(tagContent string) Outline {
+	outline := Outline{}
+	for len(tagContent) > 0 {
+		spaceIdx := strings.Index(tagContent, " ")
+		if spaceIdx == -1 {
+			break
+		}
+		attrName := tagContent[:spaceIdx]
+		tagContent = tagContent[spaceIdx+1:]
+
+		eqIdx := strings.Index(tagContent, "=\"")
+		if eqIdx == -1 {
+			break
+		}
+		var attrValue string
+		rest := tagContent[eqIdx+2:]
+		endQuote := strings.Index(rest, "\"")
+		if endQuote != -1 {
+			attrValue = rest[:endQuote]
+		}
+
+		switch attrName {
+		case "type":
+			outline.Type = attrValue
+		case "text":
+			outline.Text = attrValue
+		case "URL":
+			outline.URL = attrValue
+		case "key":
+			outline.Key = attrValue
+		case "bitrate":
+			outline.Bitrate = attrValue
+		case "reliability":
+			outline.Reliability = attrValue
+		case "subtext":
+			outline.Subtext = attrValue
+		case "genre_id":
+			outline.GenreID = attrValue
+		case "formats":
+			outline.Formats = attrValue
+		case "item":
+			outline.Item = attrValue
+		case "image":
+			outline.Image = attrValue
+		case "preset_id":
+			outline.PresetID = attrValue
+		case "playing":
+			outline.Playing = attrValue
+		case "playing_image":
+			outline.PlayingImg = attrValue
+		}
+	}
+	return outline
 }
 
 // resolveStreamURL resolves TuneIn Tune.ashx, PLS, and M3U playlists to find a direct stream URL
@@ -933,10 +1082,7 @@ func handleButtonPress(playerId string, btnName string, btnArg string) {
 	}
 
 	switch btnName {
-	case "preset_2.single":
-		LogInfo("Button", "preset 2 → PCM test")
-		go runPCMTest(conn)
-	case "pause", "onepause":
+		case "pause", "onepause":
 		if btnArg == "0" {
 			resumePlayer(playerId, conn)
 		} else {
@@ -1407,151 +1553,6 @@ func runURLStream(conn net.Conn, streamURL string, pb *PlayerPlaybackState, play
 	}()
 }
 
-// runPCMTest starts generating a PCM sine wave on the player.
-// Runs entirely in a new goroutine (called from handleButtonPress).
-func runPCMTest(conn net.Conn) {
-	streamStartMu.Lock()
-	defer streamStartMu.Unlock()
-
-	// Tell the player to stop and flush its audio buffers first
-	if err := sendStrmStop(conn); err != nil {
-		LogError("PCMTest", "sendStrmStop error: %v", err)
-	}
-
-	// Cancel any previous stream first
-	stopCurrentStream()
-
-	listener, err := listenTCP4(":0")
-	if err != nil {
-		LogError("PCMTest", "listen error: %v", err)
-		return
-	}
-	port := uint16(listener.Addr().(*net.TCPAddr).Port)
-	streamDataPort = port
-	LogInfo("PCMTest", "listening on port %d", port)
-
-	// Enable audio output — let the player use its knob position
-	if err := sendAude(conn, true); err != nil {
-		LogError("PCMTest", "sendAude error: %v", err)
-	}
-	if err := sendAudg(conn, -1); err != nil {
-		LogError("PCMTest", "sendAudg error: %v", err)
-	}
-
-	// Register the listener BEFORE sendStrmCommand
-	streamStopMu.Lock()
-	streamStop = make(chan struct{})
-	thisStop := streamStop
-	streamDataLis = listener
-	streamStopMu.Unlock()
-
-	// PCM: 16-bit signed LE stereo 44100 Hz
-	if err := sendStrmCommand(conn, 's', port, 'p', '1', '3', '2', '1', 50); err != nil {
-		listener.Close()
-		LogError("PCMTest", "sendStrmCommand error: %v", err)
-		return
-	}
-
-	// Send an immediate strm timestamp so the player doesn't time out
-	if err := sendStrmKeepalive(conn); err != nil {
-		LogError("PCMTest", "initial keepalive error: %v", err)
-	}
-
-	// Keepalive goroutine
-	go func() {
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := sendStrmKeepalive(conn); err != nil {
-					return
-				}
-			case <-thisStop:
-				return
-			}
-		}
-	}()
-
-	go func() {
-		defer listener.Close()
-		defer func() {
-			streamStopMu.Lock()
-			if streamStop == thisStop {
-				close(streamStop)
-				streamStop = nil
-				streamDataPort = 0
-				streamDataLis = nil
-			}
-			streamStopMu.Unlock()
-		}()
-
-		playerConn, err := listener.Accept()
-		if err != nil {
-			LogError("PCMTest", "accept error: %v", err)
-			return
-		}
-		defer playerConn.Close()
-
-		LogInfo("PCMTest", "player connected")
-
-		// HTTP headers required by stream_readL
-		header := "HTTP/1.0 200 OK\r\nContent-Type: audio/L16\r\nConnection: close\r\n\r\n"
-		if _, err := playerConn.Write([]byte(header)); err != nil {
-			LogError("PCMTest", "write header error: %v", err)
-			return
-		}
-		LogInfo("PCMTest", "wrote HTTP headers (%d bytes)", len(header))
-
-		// Generate PCM sine wave: 440 Hz, 16-bit signed LE stereo at 44100 Hz
-		const (
-			sampleRate = 44100
-			freq       = 440.0
-			amplitude  = 3000.0
-			duration   = 10 * time.Second
-		)
-
-		totalSamples := int(sampleRate * int(duration.Seconds()))
-		buf := make([]byte, 4096)
-		sampleIdx := 0
-		totalWritten := int64(0)
-		lastLog := time.Now()
-
-		for sampleIdx < totalSamples {
-			select {
-			case <-thisStop:
-				LogInfo("PCMTest", "cancelled by new stream")
-				return
-			default:
-			}
-
-			bytesPerSample := 2
-			channels := 2
-			samplesPerBuf := len(buf) / (bytesPerSample * channels)
-			off := 0
-			for s := 0; s < samplesPerBuf && sampleIdx < totalSamples; s++ {
-				t := float64(sampleIdx) / sampleRate
-				val := int16(amplitude * math.Sin(2*math.Pi*freq*t))
-				binary.LittleEndian.PutUint16(buf[off:off+2], uint16(val))
-				binary.LittleEndian.PutUint16(buf[off+2:off+4], uint16(val))
-				off += 4
-				sampleIdx++
-			}
-
-			if _, werr := playerConn.Write(buf[:off]); werr != nil {
-				LogError("PCMTest", "write error: %v", werr)
-				return
-			}
-			totalWritten += int64(off)
-			if time.Since(lastLog) > 2*time.Second {
-				LogDebug("PCMTest", "wrote %d bytes (%d samples)", totalWritten, sampleIdx)
-				lastLog = time.Now()
-			}
-		}
-
-		LogDebug("PCMTest", "done, total written: %d bytes (%d samples)", totalWritten, sampleIdx)
-	}()
-}
 
 type streamFetchResult struct {
 	reader      io.ReadCloser
@@ -1814,190 +1815,6 @@ func handleStreamStart(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handlePCMTest streams a generated PCM sine wave to test the audio output chain
-// without involving the MP3 decoder. A clean 440 Hz tone means the output chain
-// (ALSA, gain, format) is working; noise/white noise means the bug is downstream
-// of the decoder.
-func handlePCMTest(w http.ResponseWriter, r *http.Request) {
-	slimConnMu.Lock()
-	conn := slimConn
-	slimConnMu.Unlock()
-	if conn == nil {
-		http.Error(w, "no SlimProto connection", http.StatusServiceUnavailable)
-		return
-	}
-
-	// Serialize with other stream/PCMTest requests to avoid races
-	streamStartMu.Lock()
-	defer streamStartMu.Unlock()
-
-	// Tell the player to stop and flush its audio buffers first
-	if err := sendStrmStop(conn); err != nil {
-		LogError("PCMTest", "sendStrmStop error: %v", err)
-	}
-
-	// Cancel any previous stream first
-	stopCurrentStream()
-
-	listener, err := listenTCP4(":0")
-	if err != nil {
-		LogError("PCMTest", "listen error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	port := uint16(listener.Addr().(*net.TCPAddr).Port)
-	streamDataPort = port
-	LogInfo("PCMTest", "listening on port %d", port)
-
-	// Enable audio output — let the player use its knob position
-	if err := sendAude(conn, true); err != nil {
-		LogError("PCMTest", "sendAude error: %v", err)
-	}
-	if err := sendAudg(conn, -1); err != nil {
-		LogError("PCMTest", "sendAudg error: %v", err)
-	}
-
-	// Register the listener BEFORE sendStrmCommand
-	streamStopMu.Lock()
-	streamStop = make(chan struct{})
-	thisStop := streamStop
-	streamDataLis = listener
-	streamStopMu.Unlock()
-
-	// PCM: 16-bit signed LE stereo 44100 Hz
-	// Note: the Radio's firmware expects ASCII characters for these fields
-	// pcmSampleSize = '1' (16-bit)
-	// pcmSampleRate = '3' (44100 Hz)
-	// pcmChannels  = '2' (stereo)
-	// pcmEndianness = '1' (little endian)
-	if err := sendStrmCommand(conn, 's', port, 'p', '1', '3', '2', '1', 50); err != nil {
-		listener.Close()
-		LogError("PCMTest", "sendStrmCommand error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Send an immediate strm timestamp so the player doesn't time out before the first keepalive
-	if err := sendStrmKeepalive(conn); err != nil {
-		LogError("PCMTest", "initial keepalive error: %v", err)
-	}
-
-	// Keepalive goroutine
-	go func() {
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := sendStrmKeepalive(conn); err != nil {
-					return
-				}
-			case <-thisStop:
-				return
-			}
-		}
-	}()
-
-	go func() {
-		defer listener.Close()
-		// Only close thisStop if it's still the current streamStop (not replaced by a new stream)
-		defer func() {
-			streamStopMu.Lock()
-			if streamStop == thisStop {
-				close(streamStop)
-				streamStop = nil
-				streamDataPort = 0
-				streamDataLis = nil
-			}
-			streamStopMu.Unlock()
-		}()
-
-		// Generate PCM sine wave: 440 Hz, 16-bit signed LE stereo at 44100 Hz
-		const (
-			sampleRate = 44100
-			freq       = 440.0
-			amplitude  = 3000.0
-			duration   = 10 * time.Second
-		)
-
-		totalSamples := int(sampleRate * int(duration.Seconds()))
-		buf := make([]byte, 4096)
-
-		for {
-			select {
-			case <-thisStop:
-				LogInfo("PCMTest", "cancelled by new stream")
-				return
-			default:
-			}
-
-			playerConn, err := listener.Accept()
-			if err != nil {
-				streamStopMu.Lock()
-				isActive := (streamStop == thisStop)
-				streamStopMu.Unlock()
-				if isActive {
-					LogError("PCMTest", "accept error: %v", err)
-				}
-				return
-			}
-
-			func(c net.Conn) {
-				defer c.Close()
-
-				LogInfo("PCMTest", "player connected")
-
-				// HTTP headers required by stream_readL
-				header := "HTTP/1.0 200 OK\r\nContent-Type: audio/L16\r\nConnection: close\r\n\r\n"
-				if _, err := c.Write([]byte(header)); err != nil {
-					LogError("PCMTest", "write header error: %v", err)
-					return
-				}
-				LogInfo("PCMTest", "wrote HTTP headers (%d bytes)", len(header))
-
-				totalWritten := int64(0)
-				lastLog := time.Now()
-				sampleIdxConn := 0
-				for sampleIdxConn < totalSamples {
-					select {
-					case <-thisStop:
-						LogInfo("PCMTest", "cancelled by new stream")
-						return
-					default:
-					}
-
-					bytesPerSample := 2
-					channels := 2
-					samplesPerBuf := len(buf) / (bytesPerSample * channels)
-					off := 0
-					for s := 0; s < samplesPerBuf && sampleIdxConn < totalSamples; s++ {
-						t := float64(sampleIdxConn) / sampleRate
-						val := int16(amplitude * math.Sin(2*math.Pi*freq*t))
-						binary.LittleEndian.PutUint16(buf[off:off+2], uint16(val))
-						binary.LittleEndian.PutUint16(buf[off+2:off+4], uint16(val)) // same for right channel
-						off += 4
-						sampleIdxConn++
-					}
-
-					if _, werr := c.Write(buf[:off]); werr != nil {
-						LogError("PCMTest", "write error: %v", werr)
-						return
-					}
-					totalWritten += int64(off)
-					if time.Since(lastLog) > 2*time.Second {
-						LogDebug("PCMTest", "wrote %d bytes (%d samples)", totalWritten, sampleIdxConn)
-						lastLog = time.Now()
-					}
-				}
-
-				LogDebug("PCMTest", "done, total written: %d bytes (%d samples)", totalWritten, sampleIdxConn)
-			}(playerConn)
-		}
-	}()
-
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintf(w, "streaming PCM sine wave on port %d (10s)\n", port)
-}
 
 // sendVers sends the server version string.
 func sendVers(conn net.Conn, version string) error {
@@ -2448,8 +2265,7 @@ func handlePlugins(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Try cleaning size suffixes from query paths for embedded assets
-		re := regexp.MustCompile(`_([0-9]+x[0-9]+)(_[a-z])?\.png$`)
-		cleanPath := re.ReplaceAllString(path, ".png")
+		cleanPath := stripImageSizeSuffix(path)
 		if cleanPath != path {
 			if data, ok := embeddedAssets[cleanPath]; ok {
 				w.Header().Set("Content-Type", "image/png")
@@ -2467,7 +2283,7 @@ func handlePlugins(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, localPath)
 			return
 		}
-		cleanLocalPath := re.ReplaceAllString(localPath, ".png")
+		cleanLocalPath := stripImageSizeSuffix(localPath)
 		if cleanLocalPath != localPath {
 			if _, err := os.Stat(cleanLocalPath); err == nil {
 				http.ServeFile(w, r, cleanLocalPath)
@@ -2509,8 +2325,7 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Strip size suffixes like _40x40_m or _50x50 from remote image requests
-	re := regexp.MustCompile(`_([0-9]+x[0-9]+)(_[a-z])?(\.[a-zA-Z0-9]+)`)
-	u = re.ReplaceAllString(u, "$3")
+	u = stripImageSizeSuffix(u)
 
 	// Check cache first
 	imageCacheMu.RLock()
@@ -2586,42 +2401,12 @@ func handleImageProxy(w http.ResponseWriter, r *http.Request) {
 	w.Write(bodyBytes)
 }
 
-// handleDirectPCM generates PCM and feeds it directly into jive_alsa's
-// shared memory FIFO, bypassing SqueezePlay entirely.
-func handleDirectPCM(w http.ResponseWriter, r *http.Request) {
-	// Kill SqueezePlay (jive binary) + jive_alsa so they don't interfere
-	exec.Command("pkill", "-9", "jive").Run()
-	exec.Command("pkill", "-9", "jive_alsa").Run()
-	time.Sleep(500 * time.Millisecond)
-
-	// Also destroy existing shared memory segment
-	exec.Command("ipcrm", "-M", "56833").Run()
-
-	path := "/home/uli/work/slim_slim_server/squeezeplay/src/squeezeplay/pcm_feed"
-	cmd := exec.Command(path)
-	if err := cmd.Start(); err != nil {
-		LogError("DirectPCM", "pcm_feed start error: %v", err)
-		http.Error(w, fmt.Sprintf("pcm_feed error: %v", err), http.StatusInternalServerError)
-		return
-	}
-	go func() {
-		if err := cmd.Wait(); err != nil {
-			LogInfo("DirectPCM", "pcm_feed exited: %v", err)
-		} else {
-			LogInfo("DirectPCM", "pcm_feed done")
-		}
-	}()
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintf(w, "direct PCM test started (10s 440Hz sine)\n")
-}
 
 // startHTTPServer starts the HTTP CometD server (for JSON-RPC and CometD
 func startHTTPServer(m *ServerMetadata) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/stream/play", handleStreamStart)
-	mux.HandleFunc("/stream/pcmtest", handlePCMTest)
-	mux.HandleFunc("/stream/direct", handleDirectPCM)
-	mux.HandleFunc("/cometd", func(w http.ResponseWriter, r *http.Request) {
+			mux.HandleFunc("/cometd", func(w http.ResponseWriter, r *http.Request) {
 		handleCometd(w, r, m)
 	})
 	mux.HandleFunc("/jsonrpc", func(w http.ResponseWriter, r *http.Request) {
@@ -2924,9 +2709,7 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 		respClid := ""
 		if req.Data != nil {
 			if respPath, ok := req.Data["response"].(string); ok {
-				if matches := regexp.MustCompile(`/([0-9a-f]{8})/`).FindStringSubmatch(respPath); len(matches) > 1 {
-					respClid = matches[1]
-				}
+			respClid = extractClientID(respPath)
 			}
 		}
 		if respClid == "" {
@@ -2976,9 +2759,7 @@ func cometdResponse(req CometdRequest, m *ServerMetadata, assignedClientId strin
 				if req.Id != nil {
 					respChannel = respPath
 				}
-				if matches := regexp.MustCompile(`/([0-9a-f]{8})/`).FindStringSubmatch(respPath); len(matches) > 1 {
-					respClid = matches[1]
-				}
+				respClid = extractClientID(respPath)
 			}
 		}
 		if respClid == "" {
@@ -4207,9 +3988,8 @@ func handleJsonRpc(w http.ResponseWriter, r *http.Request, m *ServerMetadata) {
 		// params[0] is the channel path like "/{clientId}/slim/serverstatus"
 		if len(req.Params) > 0 {
 			if channel, ok := req.Params[0].(string); ok {
-				if matches := regexp.MustCompile(`/([0-9a-f]{8})/`).FindStringSubmatch(channel); len(matches) > 1 {
-					clientId := matches[1]
-					// Check if it's a serverstatus subscription
+				clientId := extractClientID(channel)
+				if clientId != "" {
 					if strings.Contains(channel, "serverstatus") {
 						pushServerStatus(clientId, req.Id, m, nil)
 					}
