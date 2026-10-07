@@ -1,4 +1,4 @@
-.PHONY: all build-amd64 build-squeezebox clean run setup-go1.14 generate setup-upx
+.PHONY: all build-amd64 build-squeezebox build-android clean run setup-go1.14 generate setup-upx
 
 include_png_assets ?= 0
 
@@ -6,7 +6,7 @@ ifeq ($(include_png_assets),1)
   BUILD_TAGS = -tags include_png_assets
 endif
 
-all: build-amd64 build-squeezebox
+all: build-amd64 build-squeezebox build-android
 
 # Generate assets.go by scanning the plugins/ directory
 generate:
@@ -48,6 +48,16 @@ build-squeezebox: setup-go1.14 generate setup-upx
 	@echo "Compressing with UPX..."
 	./upx/upx --best --lzma server_arm5
 
+# Build statically linked binary for Android (ARM64, runs as a foreground service)
+build-android: generate
+	@echo "Building for Android (ARM64)..."
+	CGO_ENABLED=0 GOOS=android GOARCH=arm64 go build $(BUILD_TAGS) -ldflags="-s -w" -o bin/server_android_arm64 .
+	@if [ -f upx/upx ] && ./upx/upx --best --lzma bin/server_android_arm64 >/dev/null 2>&1; then \
+		echo "Compressed with UPX..."; \
+	else \
+		echo "Skipping UPX (not available for android/arm64)..."; \
+	fi
+
 # Run the local server
 run: build-amd64
 	./server_amd64
@@ -55,4 +65,4 @@ run: build-amd64
 # Clean built binaries and legacy compiler
 clean:
 	rm -f server server_amd64 server_arm5 assets.go
-	rm -rf go1.14 upx
+	rm -rf bin go1.14 upx

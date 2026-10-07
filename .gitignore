@@ -3,3 +3,6 @@
 /server_arm5
 /goslimserver_arm5
 /go1.14/
+/bin/
+# Android assets are copied here automatically by the Gradle preBuild task
+android/app/src/main/assets/

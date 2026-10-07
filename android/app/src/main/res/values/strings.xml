@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SlimProto Server</string>
+    <string name="channel_name">SlimProto Server</string>
+    <string name="server_running">Server running on localhost:3483</string>
+    <string name="server_stopped">Server stopped</string>
+    <string name="server_starting">Starting server…</string>
+    <string name="server_stopping">Stopping server…</string>
+    <string name="start">Start Server</string>
+    <string name="stop">Stop Server</string>
+    <string name="auto_start_boot">Auto-start on boot</string>
+</resources>
